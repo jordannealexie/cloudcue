@@ -21,7 +21,7 @@ export default function DropdownMenu({ trigger, items }: DropdownMenuProps) {
         {trigger}
       </button>
       {open ? (
-        <div className="absolute right-0 top-12 z-50 min-w-[180px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-modal)] p-1">
+        <div className="pop-in absolute right-0 top-12 z-50 min-w-[180px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-modal)] p-1">
           {items.map((item) => (
             <button
               type="button"

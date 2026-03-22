@@ -1,16 +1,30 @@
 "use client";
 
+import { icons } from "lucide-react";
+
 interface PageIconProps {
   className?: string;
+  icon?: string | null;
 }
 
-export default function PageIcon({ className = "h-5 w-5" }: PageIconProps) {
+type LucideIconName = keyof typeof icons;
+
+const legacyIconMap: Record<string, LucideIconName> = {
+  doc: "FileText",
+  note: "NotebookText",
+  bookmark: "Bookmark",
+  spark: "Sparkles",
+  check: "BadgeCheck"
+};
+
+export default function PageIcon({ className = "h-5 w-5", icon = "doc" }: PageIconProps) {
+  const mapped = icon ? legacyIconMap[icon] : undefined;
+  const iconName = (mapped ?? icon ?? "FileText") as LucideIconName;
+  const LucideIcon = icons[iconName] ?? icons.FileText;
+
   return (
     <span className={`inline-flex items-center justify-center rounded-md border border-[var(--border-subtle)] bg-[var(--bg-card-2)] ${className}`} aria-hidden="true">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path d="M7 4.5h7l3 3V19.5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M14 4.5V8h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <LucideIcon size={14} strokeWidth={1.8} />
     </span>
   );
 }

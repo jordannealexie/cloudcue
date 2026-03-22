@@ -6,6 +6,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import Button from "../ui/Button";
+import { useTheme } from "../../hooks/useTheme";
 
 interface EditorProps {
   pageId: string;
@@ -32,6 +33,7 @@ const getSafeInitialContent = (input: unknown): never[] | undefined => {
 };
 
 export default function Editor({ pageId, initialContent, onAutosave }: EditorProps) {
+  const { resolvedTheme } = useTheme();
   const safeInitialContent = useMemo(() => getSafeInitialContent(initialContent), [initialContent]);
 
   const editor = useCreateBlockNote({
@@ -83,6 +85,8 @@ export default function Editor({ pageId, initialContent, onAutosave }: EditorPro
       </div>
       <BlockNoteView
         editor={editor}
+        theme={resolvedTheme === "dark" ? "dark" : "light"}
+        className="workspace-editor"
         onChange={() => {
           setLastPayload(editor.document);
         }}

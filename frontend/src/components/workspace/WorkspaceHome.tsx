@@ -48,7 +48,7 @@ export default function WorkspaceHome({ pages, onCreatePage }: WorkspaceHomeProp
           />
           <div className="p-4">
             <div className="-mt-8 mb-2">
-              <PageIcon className="h-10 w-10 text-[var(--text-primary)] shadow-md" />
+              <PageIcon icon={page.emoji} className="h-10 w-10 text-[var(--text-primary)] shadow-md" />
             </div>
             <h3 className="text-[16px] font-semibold">{page.title}</h3>
             <p className="text-[12px] text-[var(--text-secondary)]">{childCountMap[page.id] ?? 0} subpages</p>

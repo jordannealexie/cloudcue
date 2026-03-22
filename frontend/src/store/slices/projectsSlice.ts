@@ -62,7 +62,8 @@ export const updateProjectThunk = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await apiClient.patch<ApiResponse<Project>>(`/projects/${payload.id}`, payload);
+      const { id, ...body } = payload;
+      const response = await apiClient.patch<ApiResponse<Project>>(`/projects/${id}`, body);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(getApiErrorMessage(error, "Unable to update project"));

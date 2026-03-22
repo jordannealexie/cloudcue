@@ -3,6 +3,11 @@ import { z } from "zod";
 import { createTask, deleteTask, listTasksByProject, updateTask } from "../services/taskService";
 import { sendSuccess } from "../utils/http";
 
+const dueDateSchema = z.union([
+  z.string().datetime(),
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+]);
+
 export const taskIdSchema = z.object({
   id: z.string().uuid()
 });
@@ -16,7 +21,7 @@ export const createTaskSchema = z.object({
   description: z.string().max(1500).optional(),
   status: z.enum(["todo", "in_progress", "in_review", "done"]).optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-  dueDate: z.string().datetime().optional(),
+  dueDate: dueDateSchema.optional(),
   estimatedHours: z.number().positive().optional(),
   assigneeId: z.string().uuid().optional()
 });
@@ -26,7 +31,7 @@ export const updateTaskSchema = z.object({
   description: z.string().max(1500).nullable().optional(),
   status: z.enum(["todo", "in_progress", "in_review", "done"]).optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-  dueDate: z.string().datetime().nullable().optional(),
+  dueDate: dueDateSchema.nullable().optional(),
   estimatedHours: z.number().positive().nullable().optional(),
   assigneeId: z.string().uuid().nullable().optional(),
   position: z.number().int().min(0).optional()

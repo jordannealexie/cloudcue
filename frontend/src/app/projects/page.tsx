@@ -187,7 +187,11 @@ export default function ProjectsPage() {
                   type="button"
                   aria-label={`Select ${swatch}`}
                   onClick={() => setValue("color", swatch)}
-                  className={`h-12 w-full rounded-xl border ${swatchClass(swatch)} ${watch("color") === swatch ? "border-[var(--accent)]" : "border-[var(--border)]"}`}
+                  className={`h-12 w-full rounded-xl border transition ${swatchClass(swatch)} ${
+                    watch("color") === swatch
+                      ? "border-[var(--accent)] ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-card)]"
+                      : "border-[var(--border-subtle)]"
+                  }`}
                 />
               ))}
             </div>

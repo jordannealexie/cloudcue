@@ -238,12 +238,65 @@ select {
   }
 }
 
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .panel-in {
   animation: panel-in 180ms ease;
 }
 
 .pop-in {
   animation: pop-in 150ms ease;
+}
+
+.page-enter {
+  animation: page-enter 220ms ease;
+}
+
+.overlay-in {
+  animation: overlay-in 180ms ease;
+}
+
+.workspace-editor.bn-container {
+  --bn-colors-editor-background: var(--editor-bg);
+  --bn-colors-editor-text: var(--text-primary);
+  --bn-colors-menu-background: var(--bg-card);
+  --bn-colors-menu-text: var(--text-primary);
+  --bn-colors-border: var(--border-subtle);
+}
+
+.workspace-editor .bn-editor {
+  border: 1px solid var(--border-subtle);
+  padding: 18px 22px !important;
+  line-height: 1.6;
+}
+
+.workspace-editor .bn-default-styles h1,
+.workspace-editor .bn-default-styles h2,
+.workspace-editor .bn-default-styles h3 {
+  margin: 0.35rem 0;
+}
+
+.workspace-editor .bn-default-styles p,
+.workspace-editor .bn-default-styles li {
+  margin: 0.15rem 0;
 }
 
 @media (max-width: 767px) {

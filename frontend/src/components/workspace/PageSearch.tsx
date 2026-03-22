@@ -73,7 +73,7 @@ export default function PageSearch({ open, onClose }: PageSearchProps) {
         {searchResults.map((result) => (
           <Link key={result.id} href={`/workspace/${result.id}`} className="surface-elevated block p-3" onClick={onClose}>
             <p className="flex items-center gap-2 text-[14px] font-semibold">
-              <PageIcon className="h-5 w-5 text-[var(--text-secondary)]" />
+              <PageIcon icon={result.emoji} className="h-5 w-5 text-[var(--text-secondary)]" />
               <span>{highlight(result.title, query)}</span>
             </p>
             <p className="text-[12px] text-[var(--text-secondary)]">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import DropdownMenu from "../ui/DropdownMenu";
 import type { PageTreeNode } from "../../types/workspace";
 import PageIcon from "./PageIcon";
+import ConfirmModal from "../ui/ConfirmModal";
 
 interface PageTreeItemProps {
   node: PageTreeNode;
@@ -16,15 +17,11 @@ interface PageTreeItemProps {
 
 export default function PageTreeItem({ node, level = 0, activeId, onAddSubpage, onDeletePage }: PageTreeItemProps) {
   const [expanded, setExpanded] = useState(true);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const hasChildren = node.children.length > 0;
 
   const handleDelete = () => {
-    const shouldDelete = window.confirm(`Delete \"${node.title}\"?`);
-    if (!shouldDelete) {
-      return;
-    }
-
-    onDeletePage?.(node.id);
+    setIsDeleteConfirmOpen(true);
   };
 
   return (
@@ -46,7 +43,7 @@ export default function PageTreeItem({ node, level = 0, activeId, onAddSubpage, 
         )}
 
         <Link href={`/workspace/${node.id}`} className="flex flex-1 items-center gap-2 text-[14px] font-medium">
-          <PageIcon className="h-5 w-5 text-[var(--text-secondary)]" />
+          <PageIcon icon={node.emoji} className="h-5 w-5 text-[var(--text-secondary)]" />
           <span className="truncate">{node.title}</span>
         </Link>
 
@@ -85,6 +82,17 @@ export default function PageTreeItem({ node, level = 0, activeId, onAddSubpage, 
             />
           ))
         : null}
+
+      <ConfirmModal
+        open={isDeleteConfirmOpen}
+        title="Delete page"
+        message={`Delete \"${node.title}\"? This action cannot be undone.`}
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          setIsDeleteConfirmOpen(false);
+          onDeletePage?.(node.id);
+        }}
+      />
     </div>
   );
 }

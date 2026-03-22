@@ -19,11 +19,21 @@ const defaultStats: DashboardStats = {
   weeklyActivity: []
 };
 
+const formatDuration = (totalSeconds: number): string => {
+  const safe = Math.max(totalSeconds, 0);
+  const hours = Math.floor(safe / 3600).toString().padStart(2, "0");
+  const minutes = Math.floor((safe % 3600) / 60).toString().padStart(2, "0");
+  const seconds = Math.floor(safe % 60).toString().padStart(2, "0");
+  return `${hours}:${minutes}:${seconds}`;
+};
+
 export default function DashboardPage() {
   const { items: projects, loadProjects } = useProjects();
   const { byProjectId } = useTasks();
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const monthYearLabel = useMemo(
     () => new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" }),
     []
@@ -50,13 +60,67 @@ export default function DashboardPage() {
     void run();
   }, []);
 
+  useEffect(() => {
+    try {
+      const storedSeconds = Number(window.localStorage.getItem("cloudcue:timer:seconds") ?? "0");
+      const storedRunning = window.localStorage.getItem("cloudcue:timer:running") === "1";
+
+      if (Number.isFinite(storedSeconds) && storedSeconds >= 0) {
+        setElapsedSeconds(storedSeconds);
+      }
+
+      setIsTimerRunning(storedRunning);
+    } catch {
+      setElapsedSeconds(0);
+      setIsTimerRunning(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isTimerRunning) {
+      return;
+    }
+
+    const id = window.setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => window.clearInterval(id);
+  }, [isTimerRunning]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("cloudcue:timer:seconds", String(elapsedSeconds));
+      window.localStorage.setItem("cloudcue:timer:running", isTimerRunning ? "1" : "0");
+    } catch {
+      // Ignore storage errors in restricted environments.
+    }
+  }, [elapsedSeconds, isTimerRunning]);
+
   const upcoming = useMemo(
     () => Object.values(byProjectId).flat().sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? "")).slice(0, 5),
     [byProjectId]
   );
 
   const members = projects[0]?.members ?? [];
-  const insightBars = ["h-2", "h-3", "h-4", "h-5", "h-6", "h-3", "h-4", "h-6", "h-5", "h-3", "h-4", "h-2", "h-4", "h-6", "h-5", "h-3", "h-4", "h-5", "h-3", "h-2", "h-4", "h-5", "h-3", "h-4"];
+  const inWorkCount = stats.inProgress;
+  const completedCount = Math.max(stats.totalTasks - stats.inProgress, 0);
+  const completionPercent = stats.totalTasks > 0 ? Math.round((completedCount / stats.totalTasks) * 100) : 0;
+  const extraMembers = Math.max(members.length - 3, 0);
+  const insightBars = useMemo(() => {
+    if (stats.weeklyActivity.length === 0) {
+      return Array.from({ length: 7 }, (_, index) => ({
+        height: 8,
+        active: index % 3 === 0
+      }));
+    }
+
+    const max = Math.max(...stats.weeklyActivity.map((item) => item.count), 1);
+    return stats.weeklyActivity.map((item, index) => ({
+      height: Math.max(8, Math.round((item.count / max) * 28)),
+      active: index % 2 === 0
+    }));
+  }, [stats.weeklyActivity]);
   const productivityBars = ["h-[80px]", "h-[120px]", "h-[90px]", "h-[150px]", "h-[180px]", "h-[140px]", "h-[160px]"];
 
   return (
@@ -81,25 +145,25 @@ export default function DashboardPage() {
               <p className="text-[14px] font-semibold">Tasks</p>
               <p className="mt-3 text-[44px] font-bold leading-none">{stats.totalTasks}</p>
               <div className="mt-3 h-2 rounded-full bg-[var(--bg-card-2)]">
-                <div className="progress-50 h-2 rounded-full bg-[var(--accent)]" />
+                <div className="h-2 rounded-full bg-[var(--accent)] transition-[width] duration-300" style={{ width: `${completionPercent}%` }} />
               </div>
               <div className="mt-2 flex gap-2 text-[11px] text-[var(--text-secondary)]">
-                <span>In Work</span>
-                <span>Completed</span>
+                <span>In Work {inWorkCount}</span>
+                <span>Completed {completedCount}</span>
               </div>
             </article>
 
             <article className="accent-block p-4">
               <p className="text-[24px] font-bold leading-none">Core Team</p>
               <p className="text-[12px] text-[var(--text-secondary)]">Product Members</p>
-              <p className="mt-5 text-[13px]">{members.length || 32} Members</p>
+              <p className="mt-5 text-[13px]">{members.length} Members</p>
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex -space-x-2">
                   {members.slice(0, 3).map((member) => (
                     <Avatar key={member.userId} name={member.user.name} src={member.user.avatarUrl} size="sm" />
                   ))}
                 </div>
-                <span className="rounded-full bg-[var(--bg-page)] px-2 py-1 text-[11px]">+29</span>
+                <span className="rounded-full bg-[var(--bg-page)] px-2 py-1 text-[11px]">+{extraMembers}</span>
               </div>
             </article>
 
@@ -117,13 +181,14 @@ export default function DashboardPage() {
             <article className="surface-card p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-[24px] font-bold leading-none">Team Insights</p>
-                <span className="text-[12px] text-[var(--text-secondary)]">View all</span>
+                <Link href="/team" className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">View all</Link>
               </div>
-              <div className="mb-4 grid grid-cols-12 items-end gap-1">
-                {insightBars.map((heightClass, index) => (
+              <div className="mb-4 grid grid-cols-7 items-end gap-1">
+                {insightBars.map((bar, index) => (
                   <span
                     key={index}
-                    className={`rounded-full ${heightClass} ${index % 3 === 0 ? "bg-[var(--text-primary)]" : "bg-[var(--border)]"}`}
+                    className={`rounded-full ${bar.active ? "bg-[var(--text-primary)]" : "bg-[var(--border)]"}`}
+                    style={{ height: `${bar.height}px` }}
                   />
                 ))}
               </div>
@@ -133,7 +198,7 @@ export default function DashboardPage() {
                     <Avatar key={member.userId} name={member.user.name} src={member.user.avatarUrl} size="sm" />
                   ))}
                 </div>
-                <button type="button" aria-label="Play insights" className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg-page)]">▶</button>
+                <Link href="/team" aria-label="Open team insights" className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--bg-page)]">▶</Link>
               </div>
             </article>
           </div>
@@ -228,10 +293,27 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <article className="ink-block p-4">
             <p className="text-[30px] font-bold leading-none">Time Tracker</p>
-            <p className="mt-4 text-[52px] font-bold leading-none">07:40:15</p>
+            <p className="mt-4 text-[52px] font-bold leading-none">{formatDuration(elapsedSeconds)}</p>
             <div className="mt-4 flex gap-2">
-              <button type="button" aria-label="Pause" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-card)]">II</button>
-              <button type="button" aria-label="Stop" className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-card)]">■</button>
+              <button
+                type="button"
+                aria-label={isTimerRunning ? "Pause" : "Start"}
+                onClick={() => setIsTimerRunning((running) => !running)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-card)]"
+              >
+                {isTimerRunning ? "II" : "▶"}
+              </button>
+              <button
+                type="button"
+                aria-label="Reset"
+                onClick={() => {
+                  setIsTimerRunning(false);
+                  setElapsedSeconds(0);
+                }}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-card)]"
+              >
+                ■
+              </button>
             </div>
           </article>
         </div>

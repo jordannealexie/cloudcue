@@ -160,6 +160,12 @@ export default function WorkspaceEditorPage() {
             onTitleChange={(title) => {
               void updatePage({ pageId, title, contentText: title });
             }}
+            onIconChange={(icon) => {
+              void updatePage({ pageId, emoji: icon ?? "FileText" });
+            }}
+            onCoverChange={(nextCoverUrl) => {
+              void updatePage({ pageId, coverUrl: nextCoverUrl });
+            }}
           />
 
           <Editor

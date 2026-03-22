@@ -101,7 +101,8 @@ export const updatePageThunk = createAsyncThunk(
     contentText?: string;
   }, { rejectWithValue }) => {
     try {
-      const response = await apiClient.patch(`/pages/${payload.pageId}`, payload);
+      const { pageId, ...body } = payload;
+      const response = await apiClient.patch(`/pages/${pageId}`, body);
       return response.data.data as WorkspacePage;
     } catch (error) {
       return rejectWithValue(getApiErrorMessage(error, "Unable to save page"));
@@ -192,6 +193,7 @@ const workspaceSlice = createSlice({
       .addCase(updatePageThunk.fulfilled, (state, action) => {
         state.isSaving = false;
         state.pages[action.payload.id] = action.payload;
+        state.pageTree = buildTree(Object.values(state.pages));
       })
       .addCase(updatePageThunk.rejected, (state, action) => {
         state.isSaving = false;

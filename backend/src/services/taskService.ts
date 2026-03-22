@@ -38,6 +38,25 @@ const assertProjectMembership = async (userId: string, projectId: string): Promi
   }
 };
 
+const parseDueDate = (value?: string | null): Date | null | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00.000Z` : value;
+  const parsed = new Date(normalized);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new ApiError(400, "Invalid due date");
+  }
+
+  return parsed;
+};
+
 /** Lists tasks by project for authorized users. */
 export const listTasksByProject = async (userId: string, projectId: string) => {
   try {
@@ -80,7 +99,7 @@ export const createTask = async (userId: string, projectId: string, input: Creat
         description: input.description,
         status: columnStatus,
         priority: input.priority ?? "medium",
-        dueDate: input.dueDate ? new Date(input.dueDate) : undefined,
+        dueDate: parseDueDate(input.dueDate),
         estimatedHours: input.estimatedHours,
         assigneeId: input.assigneeId,
         position: (last?.position ?? -1) + 1,
@@ -135,7 +154,7 @@ export const updateTask = async (userId: string, taskId: string, input: UpdateTa
         description: input.description,
         status: input.status,
         priority: input.priority,
-        dueDate: input.dueDate === null ? null : input.dueDate ? new Date(input.dueDate) : undefined,
+        dueDate: parseDueDate(input.dueDate),
         estimatedHours: typeof input.estimatedHours === "number" ? input.estimatedHours : input.estimatedHours === null ? null : undefined,
         assigneeId: input.assigneeId,
         position: input.position

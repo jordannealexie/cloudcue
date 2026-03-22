@@ -11,6 +11,8 @@ import TaskSlideOver from "../../../components/tasks/TaskSlideOver";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import Modal from "../../../components/ui/Modal";
+import ConfirmModal from "../../../components/ui/ConfirmModal";
+import { PROJECT_SWATCHES } from "../../../lib/constants";
 import { useProjects } from "../../../hooks/useProjects";
 import { useTasks } from "../../../hooks/useTasks";
 import type { Task, TaskPriority, TaskStatus } from "../../../types";
@@ -19,7 +21,7 @@ export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const projectId = params.id;
-  const { currentProject, loadProject, deleteProject, isLoading: projectLoading, error: projectError } = useProjects();
+  const { currentProject, loadProject, updateProject, deleteProject, isLoading: projectLoading, error: projectError } = useProjects();
   const {
     byProjectId,
     isLoading: tasksLoading,
@@ -43,10 +45,26 @@ export default function ProjectDetailPage() {
   const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>("medium");
   const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("todo");
   const [newTaskDueDate, setNewTaskDueDate] = useState("");
+  const [newTaskAssigneeId, setNewTaskAssigneeId] = useState("");
+  const [isDeleteProjectConfirmOpen, setIsDeleteProjectConfirmOpen] = useState(false);
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [editProjectName, setEditProjectName] = useState("");
+  const [editProjectDescription, setEditProjectDescription] = useState("");
+  const [editProjectColor, setEditProjectColor] = useState("#3D5387");
   const [currentMonth, setCurrentMonth] = useState<Date>(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+
+  useEffect(() => {
+    if (!currentProject) {
+      return;
+    }
+
+    setEditProjectName(currentProject.name);
+    setEditProjectDescription(currentProject.description ?? "");
+    setEditProjectColor(currentProject.color);
+  }, [currentProject]);
 
   useEffect(() => {
     if (projectId && currentProject?.id !== projectId) {
@@ -131,7 +149,8 @@ export default function ProjectDetailPage() {
       description: newTaskDescription.trim() || undefined,
       priority: newTaskPriority,
       status: newTaskStatus,
-      dueDate: newTaskDueDate || undefined
+      dueDate: newTaskDueDate || undefined,
+      assigneeId: newTaskAssigneeId || undefined
     });
 
     if (result.meta.requestStatus === "fulfilled") {
@@ -142,6 +161,7 @@ export default function ProjectDetailPage() {
       setNewTaskPriority("medium");
       setNewTaskStatus("todo");
       setNewTaskDueDate("");
+      setNewTaskAssigneeId("");
       return;
     }
 
@@ -176,8 +196,27 @@ export default function ProjectDetailPage() {
     setMutationMessage((result.payload as string) ?? "Task move failed. Board refreshed.");
   };
 
-  const handleSaveTask = async (payload: { id: string; title: string; description?: string | null }): Promise<void> => {
-    const result = await updateTask({ id: payload.id, projectId, title: payload.title, description: payload.description ?? null });
+  const handleSaveTask = async (payload: {
+    id: string;
+    title: string;
+    description?: string | null;
+    status: TaskStatus;
+    priority: TaskPriority;
+    dueDate?: string | null;
+    assigneeId?: string | null;
+    estimatedHours?: number | null;
+  }): Promise<void> => {
+    const result = await updateTask({
+      id: payload.id,
+      projectId,
+      title: payload.title,
+      description: payload.description ?? null,
+      status: payload.status,
+      priority: payload.priority,
+      dueDate: payload.dueDate,
+      assigneeId: payload.assigneeId,
+      estimatedHours: payload.estimatedHours
+    });
 
     if (result.meta.requestStatus === "fulfilled") {
       setMutationMessage("Task updated.");
@@ -200,11 +239,6 @@ export default function ProjectDetailPage() {
   };
 
   const handleDeleteProject = async (): Promise<void> => {
-    const shouldDelete = window.confirm("Delete this project and all related tasks?");
-    if (!shouldDelete) {
-      return;
-    }
-
     const result = await deleteProject(projectId);
 
     if (result.meta.requestStatus === "fulfilled") {
@@ -213,6 +247,30 @@ export default function ProjectDetailPage() {
     }
 
     setMutationMessage((result.payload as string) ?? "Unable to delete project.");
+  };
+
+  const handleUpdateProject = async (): Promise<void> => {
+    const name = editProjectName.trim();
+
+    if (!name) {
+      setMutationMessage("Project name is required.");
+      return;
+    }
+
+    const result = await updateProject({
+      id: projectId,
+      name,
+      description: editProjectDescription.trim() || null,
+      color: editProjectColor
+    });
+
+    if (result.meta.requestStatus === "fulfilled") {
+      setMutationMessage("Project updated.");
+      setIsEditProjectOpen(false);
+      return;
+    }
+
+    setMutationMessage((result.payload as string) ?? "Unable to update project.");
   };
 
   return (
@@ -227,7 +285,8 @@ export default function ProjectDetailPage() {
           </div>
           <div className="flex gap-2">
             <Button onClick={() => setIsCreateTaskOpen(true)}>+ New Task</Button>
-            <Button variant="danger" onClick={() => void handleDeleteProject()}>Delete Project</Button>
+            <Button variant="secondary" onClick={() => setIsEditProjectOpen(true)}>Edit Project</Button>
+            <Button variant="danger" onClick={() => setIsDeleteProjectConfirmOpen(true)}>Delete Project</Button>
           </div>
         </div>
       </section>
@@ -347,11 +406,43 @@ export default function ProjectDetailPage() {
 
       <TaskSlideOver
         task={selectedTask}
+        projectMembers={currentProject?.members ?? []}
         open={Boolean(selectedTaskId)}
         onClose={() => setSelectedTaskId(null)}
         onSave={handleSaveTask}
         onDelete={(taskId) => void handleDeleteTask(taskId)}
       />
+
+      <Modal open={isEditProjectOpen} onClose={() => setIsEditProjectOpen(false)} title="Edit Project">
+        <div className="space-y-3">
+          <Input label="Name" value={editProjectName} onChange={(event) => setEditProjectName(event.target.value)} />
+          <Input
+            label="Description"
+            value={editProjectDescription}
+            onChange={(event) => setEditProjectDescription(event.target.value)}
+          />
+          <div>
+            <p className="mb-2 text-meta text-[var(--text-secondary)]">Color</p>
+            <div className="grid grid-cols-5 gap-2">
+              {PROJECT_SWATCHES.map((swatch) => (
+                <button
+                  key={swatch}
+                  type="button"
+                  aria-label={`Select ${swatch}`}
+                  onClick={() => setEditProjectColor(swatch)}
+                  className={`h-10 rounded-lg border transition ${
+                    editProjectColor === swatch
+                      ? "border-[var(--accent)] ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-card)]"
+                      : "border-[var(--border-subtle)]"
+                  }`}
+                  style={{ backgroundColor: swatch }}
+                />
+              ))}
+            </div>
+          </div>
+          <Button className="w-full" onClick={() => void handleUpdateProject()}>Save Project</Button>
+        </div>
+      </Modal>
 
       <Modal open={isCreateTaskOpen} onClose={() => setIsCreateTaskOpen(false)} title="Create Task">
         <div className="space-y-3">
@@ -386,9 +477,35 @@ export default function ProjectDetailPage() {
             </label>
           </div>
           <Input label="Due date" type="date" value={newTaskDueDate} onChange={(event) => setNewTaskDueDate(event.target.value)} />
+          <label className="flex flex-col gap-2">
+            <span className="text-meta text-[var(--text-secondary)]">Assignee</span>
+            <select
+              value={newTaskAssigneeId}
+              onChange={(event) => setNewTaskAssigneeId(event.target.value)}
+              className="h-11 rounded-[10px] border border-[var(--border)] bg-[var(--bg-card-2)] px-3"
+            >
+              <option value="">Unassigned</option>
+              {(currentProject?.members ?? []).map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.user.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <Button className="w-full" onClick={() => void handleCreateTaskFromModal()}>Create Task</Button>
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={isDeleteProjectConfirmOpen}
+        title="Delete project"
+        message="Delete this project and all related tasks? This cannot be undone."
+        onCancel={() => setIsDeleteProjectConfirmOpen(false)}
+        onConfirm={() => {
+          setIsDeleteProjectConfirmOpen(false);
+          void handleDeleteProject();
+        }}
+      />
     </PageWrapper>
   );
 }
