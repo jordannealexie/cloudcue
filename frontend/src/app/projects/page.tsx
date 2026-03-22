@@ -14,6 +14,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PROJECT_SWATCHES } from "../../lib/constants";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 const projectSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -25,6 +26,7 @@ type ProjectForm = z.infer<typeof projectSchema>;
 
 export default function ProjectsPage() {
   const dispatch = useAppDispatch();
+  const searchParams = useSearchParams();
   const { items, isLoading, error, loadProjects, createProject } = useProjects();
   const activeModal = useAppSelector((state) => state.ui.activeModal);
   const [tab, setTab] = useState<"all" | "mine" | "shared">("all");
@@ -44,6 +46,12 @@ export default function ProjectsPage() {
   useEffect(() => {
     void loadProjects();
   }, [loadProjects]);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      dispatch(setActiveModal("newProject"));
+    }
+  }, [dispatch, searchParams]);
 
   const onSubmit = async (values: ProjectForm): Promise<void> => {
     const result = await createProject(values);

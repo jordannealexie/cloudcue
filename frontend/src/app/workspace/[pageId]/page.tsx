@@ -38,10 +38,18 @@ export default function WorkspaceEditorPage() {
   useSocket(pageId);
 
   useEffect(() => {
-    void loadTree();
-    void loadPage(pageId);
-    void dispatch(fetchCommentsThunk(pageId));
-  }, [dispatch, loadPage, loadTree, pageId]);
+    if (pageTree.length === 0) {
+      void loadTree();
+    }
+
+    if (!pages[pageId]) {
+      void loadPage(pageId);
+    }
+
+    if (comments.length === 0) {
+      void dispatch(fetchCommentsThunk(pageId));
+    }
+  }, [comments.length, dispatch, loadPage, loadTree, pageId, pageTree.length, pages]);
 
   const page = pages[pageId];
 
@@ -97,7 +105,20 @@ export default function WorkspaceEditorPage() {
             <Button variant="ghost" onClick={() => void createPage({ title: "Untitled" })}>+
             </Button>
           </div>
-          <PageTree tree={pageTree} activeId={pageId} onAddSubpage={(parentId) => void createPage({ parentId, title: "Untitled" })} />
+          <PageTree
+            tree={pageTree}
+            activeId={pageId}
+            onAddPage={() => void createPage({ title: "Untitled" })}
+            onAddSubpage={(parentId) => void createPage({ parentId, title: "Untitled" })}
+            onDeletePage={(targetPageId) => {
+              if (targetPageId === pageId) {
+                void archivePage();
+                return;
+              }
+
+              void removePage(targetPageId);
+            }}
+          />
         </aside>
 
         <main className="space-y-3">

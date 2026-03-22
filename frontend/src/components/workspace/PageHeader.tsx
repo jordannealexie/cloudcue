@@ -1,6 +1,7 @@
 "use client";
 
 import Button from "../ui/Button";
+import PageIcon from "./PageIcon";
 
 interface PageHeaderProps {
   title: string;
@@ -37,7 +38,7 @@ export default function PageHeader({
                 backgroundPosition: "center"
               }
             : {
-                backgroundImage: "linear-gradient(120deg, rgba(194,240,75,0.22), rgba(61,83,135,0.28) 50%, rgba(191,169,186,0.2))"
+                backgroundImage: "linear-gradient(120deg, rgba(24,35,70,0.22), rgba(61,83,135,0.28) 50%, rgba(191,169,186,0.2))"
               }
         }
       >
@@ -47,7 +48,11 @@ export default function PageHeader({
       </div>
       <div className="space-y-3 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost">{emoji ?? "Add emoji"}</Button>
+          <Button variant="ghost" className="inline-flex items-center gap-2">
+            <PageIcon className="h-5 w-5 text-[var(--text-secondary)]" />
+            Page icon
+            <span className="sr-only">{emoji ?? "Page"}</span>
+          </Button>
           <span className="rounded-full bg-[var(--bg-card-2)] px-2 py-1 text-[12px] text-[var(--text-secondary)]">
             {isSaving ? "Saving..." : "Saved ✓"}
           </span>

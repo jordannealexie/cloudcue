@@ -4,6 +4,7 @@ import Link from "next/link";
 import Avatar from "../ui/Avatar";
 import Button from "../ui/Button";
 import type { WorkspacePage } from "../../types/workspace";
+import PageIcon from "./PageIcon";
 
 interface WorkspaceHomeProps {
   pages: WorkspacePage[];
@@ -23,7 +24,7 @@ export default function WorkspaceHome({ pages, onCreatePage }: WorkspaceHomeProp
   if (!pages.length) {
     return (
       <div className="surface-card flex min-h-[320px] flex-col items-center justify-center gap-3 p-6 text-center">
-        <p className="text-[42px]">📄</p>
+        <PageIcon className="h-12 w-12 text-[var(--text-secondary)]" />
         <h2 className="text-[20px] font-semibold">No pages yet</h2>
         <p className="text-[14px] text-[var(--text-secondary)]">Create your first page to start writing, planning, or brainstorming.</p>
         <Button onClick={onCreatePage}>Create a page</Button>
@@ -40,13 +41,15 @@ export default function WorkspaceHome({ pages, onCreatePage }: WorkspaceHomeProp
             style={{
               backgroundImage: page.coverUrl
                 ? `linear-gradient(180deg, transparent, rgba(14,13,21,0.4)), url(${page.coverUrl})`
-                : "linear-gradient(120deg, rgba(194,240,75,0.3), rgba(61,83,135,0.26), rgba(191,169,186,0.24))",
+                : "linear-gradient(120deg, rgba(24,35,70,0.2), rgba(61,83,135,0.26), rgba(191,169,186,0.24))",
               backgroundSize: "cover",
               backgroundPosition: "center"
             }}
           />
           <div className="p-4">
-            <p className="-mt-8 mb-2 text-[42px] drop-shadow-md">{page.emoji ?? "📄"}</p>
+            <div className="-mt-8 mb-2">
+              <PageIcon className="h-10 w-10 text-[var(--text-primary)] shadow-md" />
+            </div>
             <h3 className="text-[16px] font-semibold">{page.title}</h3>
             <p className="text-[12px] text-[var(--text-secondary)]">{childCountMap[page.id] ?? 0} subpages</p>
             <p className="mt-1 text-[12px] text-[var(--text-secondary)]">Edited {new Date(page.updatedAt).toLocaleString()}</p>

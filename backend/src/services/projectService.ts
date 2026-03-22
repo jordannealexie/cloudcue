@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { ApiError } from "../utils/http";
 import { rethrowPrismaRuntimeError } from "../utils/prismaErrors";
@@ -184,7 +185,11 @@ export const deleteProject = async (userId: string, projectId: string): Promise<
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    await prisma.project.delete({ where: { id: projectId } });
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.task.deleteMany({ where: { projectId } });
+      await tx.projectMember.deleteMany({ where: { projectId } });
+      await tx.project.delete({ where: { id: projectId } });
+    });
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;

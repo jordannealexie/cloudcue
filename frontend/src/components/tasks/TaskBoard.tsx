@@ -62,7 +62,12 @@ export default function TaskBoard({
   }
 
   if (tasks.length === 0) {
-    return <div className="surface-card p-4 text-[var(--text-secondary)]">No tasks here yet. Drop one in or add a new one.</div>;
+    return (
+      <div className="surface-card flex items-center justify-between gap-3 p-4">
+        <p className="text-[var(--text-secondary)]">No tasks here yet. Add your first one to get started.</p>
+        <Button variant="secondary" onClick={() => onAddTask("todo")}>+ Add task</Button>
+      </div>
+    );
   }
 
   return (

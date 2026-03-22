@@ -9,12 +9,14 @@ import Button from "../../components/ui/Button";
 import { useWorkspace } from "../../hooks/useWorkspace";
 
 export default function WorkspacePage() {
-  const { loadTree, pages, createPage, saveError } = useWorkspace();
+  const { loadTree, pages, pageTree, createPage, saveError } = useWorkspace();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
-    void loadTree();
-  }, [loadTree]);
+    if (pageTree.length === 0) {
+      void loadTree();
+    }
+  }, [loadTree, pageTree.length]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

@@ -15,9 +15,27 @@ interface EditorProps {
 
 const toPlainText = (content: unknown): string => JSON.stringify(content);
 
+const getSafeInitialContent = (input: unknown): never[] | undefined => {
+  if (!Array.isArray(input)) {
+    return undefined;
+  }
+
+  const hasInvalidBlock = input.some((block) => {
+    return !block || typeof block !== "object" || typeof (block as { type?: unknown }).type !== "string";
+  });
+
+  if (hasInvalidBlock) {
+    return undefined;
+  }
+
+  return input as never[];
+};
+
 export default function Editor({ pageId, initialContent, onAutosave }: EditorProps) {
+  const safeInitialContent = useMemo(() => getSafeInitialContent(initialContent), [initialContent]);
+
   const editor = useCreateBlockNote({
-    initialContent: Array.isArray(initialContent) ? (initialContent as never[]) : undefined
+    initialContent: safeInitialContent ?? ([{ type: "paragraph", content: [] }] as never[])
   });
 
   const [status, setStatus] = useState<"saved" | "saving" | "error">("saved");

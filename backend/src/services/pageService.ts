@@ -30,7 +30,7 @@ export const createPage = async (userId: string, payload: { title?: string; emoj
         title: payload.title ?? "Untitled",
         emoji: payload.emoji,
         parentId: payload.parentId,
-        content: payload.content ?? [{ type: "paragraph", content: "" }],
+        content: payload.content ?? [{ type: "paragraph", content: [] }],
         contentText: payload.title ?? "Untitled",
         createdById: userId,
         position: siblingCount

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import PageWrapper from "../../components/layout/PageWrapper";
 import Topbar from "../../components/layout/Topbar";
 import Badge from "../../components/ui/Badge";
@@ -23,10 +24,16 @@ export default function DashboardPage() {
   const { byProjectId } = useTasks();
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
+  const monthYearLabel = useMemo(
+    () => new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+    []
+  );
 
   useEffect(() => {
-    void loadProjects();
-  }, [loadProjects]);
+    if (projects.length === 0) {
+      void loadProjects();
+    }
+  }, [loadProjects, projects.length]);
 
   useEffect(() => {
     const run = async (): Promise<void> => {
@@ -98,13 +105,13 @@ export default function DashboardPage() {
 
             <article className="surface-card flex flex-col items-center justify-center border-dashed p-4 text-center">
               <p className="text-[28px] leading-none">Add New Board</p>
-              <button
-                type="button"
+              <Link
+                href="/projects?new=1"
                 aria-label="Add board"
                 className="mt-5 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-text)]"
               >
                 +
-              </button>
+              </Link>
             </article>
 
             <article className="surface-card p-4">
@@ -178,14 +185,14 @@ export default function DashboardPage() {
                   );
                 })}
               </div>
-              <p className="mt-4 text-center text-[20px] font-semibold">April 2023</p>
+              <p className="mt-4 text-center text-[20px] font-semibold">{monthYearLabel}</p>
             </article>
           </div>
 
           <article className="surface-card p-4">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-[32px] font-bold leading-none">Schedule</h2>
-              <Badge>April 2023</Badge>
+              <Badge>{monthYearLabel}</Badge>
             </div>
             <p className="mb-3 text-[14px] text-[var(--text-secondary)]">15 Upcoming Tasks</p>
             <div className="grid gap-4 lg:grid-cols-[0.9fr_1fr]">

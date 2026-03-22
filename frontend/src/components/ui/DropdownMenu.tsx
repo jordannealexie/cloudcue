@@ -16,7 +16,7 @@ export default function DropdownMenu({ trigger, items }: DropdownMenuProps) {
         type="button"
         aria-label="Open menu"
         onClick={() => setOpen((prev) => !prev)}
-        className="min-h-[44px] min-w-[44px]"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--text-secondary)] transition hover:bg-[var(--bg-card-2)]"
       >
         {trigger}
       </button>

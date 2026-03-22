@@ -36,7 +36,7 @@ const persistedReducer = persistReducer(
   {
     key: "cloudcue-root",
     storage,
-    whitelist: ["auth", "theme"]
+    whitelist: ["auth", "theme", "projects", "tasks", "workspace", "notifications"]
   },
   rootReducer
 );

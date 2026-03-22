@@ -216,9 +216,43 @@ select {
   }
 }
 
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.panel-in {
+  animation: panel-in 180ms ease;
+}
+
+.pop-in {
+  animation: pop-in 150ms ease;
+}
+
 @media (max-width: 767px) {
   .mobile-sheet {
     border-radius: 20px 20px 0 0;
     min-height: 100vh;
+  }
+
+  .panel-in {
+    animation: slide-in 180ms ease;
   }
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import PageIcon from "./PageIcon";
 
 interface PageSearchProps {
   open: boolean;
@@ -71,7 +72,10 @@ export default function PageSearch({ open, onClose }: PageSearchProps) {
         ) : null}
         {searchResults.map((result) => (
           <Link key={result.id} href={`/workspace/${result.id}`} className="surface-elevated block p-3" onClick={onClose}>
-            <p className="text-[14px] font-semibold">{result.emoji ?? "📄"} {highlight(result.title, query)}</p>
+            <p className="flex items-center gap-2 text-[14px] font-semibold">
+              <PageIcon className="h-5 w-5 text-[var(--text-secondary)]" />
+              <span>{highlight(result.title, query)}</span>
+            </p>
             <p className="text-[12px] text-[var(--text-secondary)]">
               {highlight(result.contentText?.slice(0, 140) ?? "No preview", query)}
             </p>

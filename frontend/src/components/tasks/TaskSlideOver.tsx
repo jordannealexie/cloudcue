@@ -10,9 +10,10 @@ interface TaskSlideOverProps {
   open: boolean;
   onClose: () => void;
   onSave: (payload: { id: string; title: string; description?: string | null }) => void;
+  onDelete: (taskId: string) => void;
 }
 
-export default function TaskSlideOver({ task, open, onClose, onSave }: TaskSlideOverProps) {
+export default function TaskSlideOver({ task, open, onClose, onSave, onDelete }: TaskSlideOverProps) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
 
@@ -27,7 +28,7 @@ export default function TaskSlideOver({ task, open, onClose, onSave }: TaskSlide
 
   return (
     <aside className="fixed inset-0 z-50 bg-[rgba(0,0,0,0.5)] backdrop-blur-sm">
-      <div className="mobile-sheet absolute bottom-0 right-0 h-full w-full border-l border-[var(--border-subtle)] bg-[var(--bg-modal)] p-6 md:w-[520px] md:rounded-none">
+      <div className="mobile-sheet panel-in absolute bottom-0 right-0 h-full w-full border-l border-[var(--border-subtle)] bg-[var(--bg-modal)] p-6 md:w-[520px] md:rounded-none">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[20px] font-semibold">Task details</h2>
           <Button variant="ghost" onClick={onClose}>
@@ -53,6 +54,20 @@ export default function TaskSlideOver({ task, open, onClose, onSave }: TaskSlide
             onClick={() => onSave({ id: task.id, title, description: description || null })}
           >
             Save Changes
+          </Button>
+          <Button
+            variant="danger"
+            className="w-full"
+            onClick={() => {
+              const shouldDelete = window.confirm("Are you sure you want to delete this task?");
+              if (!shouldDelete) {
+                return;
+              }
+
+              onDelete(task.id);
+            }}
+          >
+            Delete Task
           </Button>
         </div>
       </div>

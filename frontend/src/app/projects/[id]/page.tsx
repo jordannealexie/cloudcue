@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import PageWrapper from "../../../components/layout/PageWrapper";
 import Topbar from "../../../components/layout/Topbar";
 import TaskBoard from "../../../components/tasks/TaskBoard";
@@ -9,14 +10,16 @@ import TaskList from "../../../components/tasks/TaskList";
 import TaskSlideOver from "../../../components/tasks/TaskSlideOver";
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
+import Modal from "../../../components/ui/Modal";
 import { useProjects } from "../../../hooks/useProjects";
 import { useTasks } from "../../../hooks/useTasks";
 import type { Task, TaskPriority, TaskStatus } from "../../../types";
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const projectId = params.id;
-  const { currentProject, loadProject, isLoading: projectLoading, error: projectError } = useProjects();
+  const { currentProject, loadProject, deleteProject, isLoading: projectLoading, error: projectError } = useProjects();
   const {
     byProjectId,
     isLoading: tasksLoading,
@@ -24,6 +27,7 @@ export default function ProjectDetailPage() {
     loadTasks,
     createTask,
     updateTask,
+    deleteTask,
     optimisticMove
   } = useTasks();
 
@@ -33,17 +37,26 @@ export default function ProjectDetailPage() {
   const [dueFilter, setDueFilter] = useState<string>("");
   const [view, setView] = useState<"kanban" | "list" | "calendar">("kanban");
   const [mutationMessage, setMutationMessage] = useState<string | null>(null);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>("medium");
+  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("todo");
+  const [newTaskDueDate, setNewTaskDueDate] = useState("");
   const [currentMonth, setCurrentMonth] = useState<Date>(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
   useEffect(() => {
-    if (projectId) {
+    if (projectId && currentProject?.id !== projectId) {
       void loadProject(projectId);
+    }
+
+    if (projectId && !byProjectId[projectId]) {
       void loadTasks(projectId);
     }
-  }, [loadProject, loadTasks, projectId]);
+  }, [byProjectId, currentProject?.id, loadProject, loadTasks, projectId]);
 
   const tasks = useMemo(() => byProjectId[projectId] ?? currentProject?.tasks ?? [], [byProjectId, currentProject?.tasks, projectId]);
 
@@ -104,6 +117,37 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleCreateTaskFromModal = async (): Promise<void> => {
+    const title = newTaskTitle.trim();
+
+    if (!title) {
+      setMutationMessage("Task title is required.");
+      return;
+    }
+
+    const result = await createTask({
+      projectId,
+      title,
+      description: newTaskDescription.trim() || undefined,
+      priority: newTaskPriority,
+      status: newTaskStatus,
+      dueDate: newTaskDueDate || undefined
+    });
+
+    if (result.meta.requestStatus === "fulfilled") {
+      setMutationMessage("Task created.");
+      setIsCreateTaskOpen(false);
+      setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskPriority("medium");
+      setNewTaskStatus("todo");
+      setNewTaskDueDate("");
+      return;
+    }
+
+    setMutationMessage((result.payload as string) ?? "Unable to create task.");
+  };
+
   const handleReorder = async (payload: {
     taskId: string;
     destinationStatus: TaskStatus;
@@ -143,13 +187,49 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleDeleteTask = async (taskId: string): Promise<void> => {
+    const result = await deleteTask({ taskId, projectId });
+
+    if (result.meta.requestStatus === "fulfilled") {
+      setMutationMessage("Task deleted.");
+      setSelectedTaskId(null);
+      return;
+    }
+
+    setMutationMessage((result.payload as string) ?? "Unable to delete task.");
+  };
+
+  const handleDeleteProject = async (): Promise<void> => {
+    const shouldDelete = window.confirm("Delete this project and all related tasks?");
+    if (!shouldDelete) {
+      return;
+    }
+
+    const result = await deleteProject(projectId);
+
+    if (result.meta.requestStatus === "fulfilled") {
+      router.push("/projects");
+      return;
+    }
+
+    setMutationMessage((result.payload as string) ?? "Unable to delete project.");
+  };
+
   return (
     <PageWrapper>
       <Topbar />
 
       <section className="mb-4 surface-card p-4">
-        <h1 className="text-[28px] font-bold">{projectLoading ? "Loading project..." : currentProject?.name ?? "Project"}</h1>
-        <p className="text-[14px] text-[var(--text-secondary)]">{currentProject?.description ?? "All the work your team is running."}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-[28px] font-bold">{projectLoading ? "Loading project..." : currentProject?.name ?? "Project"}</h1>
+            <p className="text-[14px] text-[var(--text-secondary)]">{currentProject?.description ?? "All the work your team is running."}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsCreateTaskOpen(true)}>+ New Task</Button>
+            <Button variant="danger" onClick={() => void handleDeleteProject()}>Delete Project</Button>
+          </div>
+        </div>
       </section>
 
       {projectError ? <div className="mb-4 surface-card p-4 text-[var(--blush)]">{projectError}</div> : null}
@@ -265,7 +345,50 @@ export default function ProjectDetailPage() {
         </section>
       )}
 
-      <TaskSlideOver task={selectedTask} open={Boolean(selectedTaskId)} onClose={() => setSelectedTaskId(null)} onSave={handleSaveTask} />
+      <TaskSlideOver
+        task={selectedTask}
+        open={Boolean(selectedTaskId)}
+        onClose={() => setSelectedTaskId(null)}
+        onSave={handleSaveTask}
+        onDelete={(taskId) => void handleDeleteTask(taskId)}
+      />
+
+      <Modal open={isCreateTaskOpen} onClose={() => setIsCreateTaskOpen(false)} title="Create Task">
+        <div className="space-y-3">
+          <Input label="Title" value={newTaskTitle} onChange={(event) => setNewTaskTitle(event.target.value)} placeholder="Task title" />
+          <Input label="Description" value={newTaskDescription} onChange={(event) => setNewTaskDescription(event.target.value)} placeholder="Optional details" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span className="text-meta text-[var(--text-secondary)]">Priority</span>
+              <select
+                value={newTaskPriority}
+                onChange={(event) => setNewTaskPriority(event.target.value as TaskPriority)}
+                className="h-11 rounded-[10px] border border-[var(--border)] bg-[var(--bg-card-2)] px-3"
+              >
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2">
+              <span className="text-meta text-[var(--text-secondary)]">Status</span>
+              <select
+                value={newTaskStatus}
+                onChange={(event) => setNewTaskStatus(event.target.value as TaskStatus)}
+                className="h-11 rounded-[10px] border border-[var(--border)] bg-[var(--bg-card-2)] px-3"
+              >
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="in_review">In Review</option>
+                <option value="done">Done</option>
+              </select>
+            </label>
+          </div>
+          <Input label="Due date" type="date" value={newTaskDueDate} onChange={(event) => setNewTaskDueDate(event.target.value)} />
+          <Button className="w-full" onClick={() => void handleCreateTaskFromModal()}>Create Task</Button>
+        </div>
+      </Modal>
     </PageWrapper>
   );
 }
