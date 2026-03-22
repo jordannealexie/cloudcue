@@ -38,7 +38,7 @@ export default function ProjectsPage() {
     formState: { errors }
   } = useForm<ProjectForm>({
     resolver: zodResolver(projectSchema),
-    defaultValues: { color: "#C2F04B" }
+    defaultValues: { color: "#3D5387" }
   });
 
   useEffect(() => {
@@ -63,14 +63,15 @@ export default function ProjectsPage() {
   const swatchClass = (color: string): string => {
     const key = color.toLowerCase().replace("#", "");
     const map: Record<string, string> = {
-      c2f04b: "swatch-c2f04b",
+      '0e0d15': "swatch-0e0d15",
       bfa9ba: "swatch-bfa9ba",
       '3d5387': "swatch-3d5387",
       '182346': "swatch-182346",
       '7c83ad': "swatch-7c83ad",
-      '4a5075': "swatch-4a5075",
-      a8d63e: "swatch-a8d63e",
-      '243060': "swatch-243060"
+      c2f04b: "swatch-7c83ad",
+      a8d63e: "swatch-bfa9ba",
+      '4a5075': "swatch-3d5387",
+      '243060': "swatch-182346"
     };
 
     return map[key] ?? "bg-[var(--accent)]";

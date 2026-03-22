@@ -30,7 +30,7 @@ export default function Topbar() {
   }, [dispatch, token, totalNotifications]);
 
   return (
-    <header className="mb-4 flex items-center justify-between gap-2 rounded-[26px] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3 py-2">
+    <header className="mb-4 flex items-center justify-between gap-3 rounded-[26px] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3.5 py-2.5">
       <div className="hidden min-w-[260px] flex-1 items-center md:flex">
         <input
           type="text"
@@ -46,8 +46,20 @@ export default function Topbar() {
         onChange={(checked) => setMode(checked ? "dark" : "light")}
       />
 
-      <Link href="/notifications" className="widget-chip">
-        Notifications {unreadCount > 0 ? `(${unreadCount})` : ""}
+      <Link
+        href="/notifications"
+        aria-label="Notifications"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card-2)] text-[var(--text-secondary)] transition hover:bg-[var(--bg-card)]"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 4a5 5 0 0 0-5 5v2.6c0 .6-.2 1.2-.6 1.7L5 15h14l-1.4-1.7c-.4-.5-.6-1.1-.6-1.7V9a5 5 0 0 0-5-5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+        {unreadCount > 0 ? (
+          <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-semibold text-[var(--accent-text)]">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        ) : null}
       </Link>
 
       <div className="relative">

@@ -19,10 +19,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <input
         ref={ref}
         id={inputId}
-        className={`w-full rounded-[10px] border bg-[var(--bg-card-2)] px-3 py-2 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-hint)] focus:border-[var(--accent)] focus:outline-none ${error ? "border-[#ef4444]" : "border-[var(--border)]"} ${className}`}
+        className={`w-full rounded-[10px] border bg-[var(--bg-card-2)] px-3 py-2 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-hint)] focus:border-[var(--accent)] focus:outline-none ${error ? "border-[var(--blush)]" : "border-[var(--border)]"} ${className}`}
         {...props}
       />
-      {error ? <span className="text-[12px] text-[#ef4444]">{error}</span> : null}
+      {error ? <span className="text-[12px] text-[var(--blush)]">{error}</span> : null}
     </label>
   );
 });
