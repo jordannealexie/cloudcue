@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String           @id @default(uuid())
+  email         String           @unique
+  name          String
+  avatarUrl     String?
+  passwordHash  String
+  createdAt     DateTime         @default(now())
+  tasks         Task[]
+  projects      ProjectMember[]
+  refreshTokens RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  pages         Page[]           @relation("PageCreator")
+  pagePerms     PagePermission[]
+  comments      Comment[]
+  notifications Notification[]
+  invitesSent   TeamInvite[]      @relation("InviteSender")
+  preferences   UserPreference?
+}
+
+model Project {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  color       String          @default("#C2F04B")
+  createdAt   DateTime        @default(now())
+  members     ProjectMember[]
+  tasks       Task[]
+}
+
+model ProjectMember {
+  userId    String
+  projectId String
+  role      String   @default("member")
+  user      User     @relation(fields: [userId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id])
+
+  @@id([userId, projectId])
+}
+
+model Task {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?
+  status         String    @default("todo")
+  priority       String    @default("medium")
+  dueDate        DateTime?
+  estimatedHours Float?
+  position       Int       @default(0)
+  projectId      String
+  assigneeId     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  project        Project   @relation(fields: [projectId], references: [id])
+  assignee       User?     @relation(fields: [assigneeId], references: [id])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Page {
+  id          String           @id @default(uuid())
+  title       String           @default("Untitled")
+  emoji       String?
+  coverUrl    String?
+  content     Json
+  contentText String?
+  parentId    String?
+  position    Int              @default(0)
+  isArchived  Boolean          @default(false)
+  createdById String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  createdBy   User             @relation("PageCreator", fields: [createdById], references: [id])
+  parent      Page?            @relation("PageTree", fields: [parentId], references: [id])
+  children    Page[]           @relation("PageTree")
+  permissions PagePermission[]
+  comments    Comment[]
+  files       PageFile[]
+}
+
+model PagePermission {
+  id     String @id @default(uuid())
+  pageId String
+  userId String
+  role   String
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([pageId, userId])
+}
+
+model Comment {
+  id         String    @id @default(uuid())
+  pageId     String
+  authorId   String
+  parentId   String?
+  content    String
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  page       Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  author     User      @relation(fields: [authorId], references: [id])
+  parent     Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies    Comment[] @relation("CommentThread")
+  mentions   CommentMention[]
+}
+
+model CommentMention {
+  id        String  @id @default(uuid())
+  commentId String
+  userId    String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+model PageFile {
+  id         String   @id @default(uuid())
+  pageId     String
+  name       String
+  url        String
+  status     String   @default("pending")
+  size       Int
+  mimeType   String
+  uploadedAt DateTime @default(now())
+  page       Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model TeamInvite {
+  id          String   @id @default(uuid())
+  email       String
+  role        String
+  status      String   @default("pending")
+  invitedById String
+  sentAt      DateTime @default(now())
+  revokedAt   DateTime?
+  invitedBy   User     @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([invitedById, sentAt])
+}
+
+model UserPreference {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  notifyTaskAssigned   Boolean  @default(true)
+  notifyTaskOverdue    Boolean  @default(true)
+  notifyTaskComment    Boolean  @default(true)
+  notifyMention        Boolean  @default(true)
+  emailWeeklyDigest    Boolean  @default(false)
+  theme                String   @default("system")
+  sidebarMode          String   @default("full")
+  editorWidth          String   @default("medium")
+  fontSize             String   @default("default")
+  allowMemberInvites   Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
