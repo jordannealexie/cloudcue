@@ -8,6 +8,7 @@ import Badge from "../../components/ui/Badge";
 import Avatar from "../../components/ui/Avatar";
 import { useProjects } from "../../hooks/useProjects";
 import { useTasks } from "../../hooks/useTasks";
+import { useAppSelector } from "../../hooks/useAppStore";
 import { apiClient, getApiErrorMessage } from "../../lib/apiClient";
 import type { ApiResponse, DashboardStats } from "../../types";
 
@@ -30,10 +31,12 @@ const formatDuration = (totalSeconds: number): string => {
 export default function DashboardPage() {
   const { items: projects, loadProjects } = useProjects();
   const { byProjectId } = useTasks();
+  const currentUser = useAppSelector((state) => state.auth.user);
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [selectedHistoryUser, setSelectedHistoryUser] = useState<string>("mine");
   const monthYearLabel = useMemo(
     () => new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" }),
     []
@@ -102,6 +105,8 @@ export default function DashboardPage() {
     [byProjectId]
   );
 
+  const allTasks = useMemo(() => Object.values(byProjectId).flat(), [byProjectId]);
+
   const members = projects[0]?.members ?? [];
   const inWorkCount = stats.inProgress;
   const completedCount = Math.max(stats.totalTasks - stats.inProgress, 0);
@@ -121,7 +126,97 @@ export default function DashboardPage() {
       active: index % 2 === 0
     }));
   }, [stats.weeklyActivity]);
-  const productivityBars = ["h-[80px]", "h-[120px]", "h-[90px]", "h-[150px]", "h-[180px]", "h-[140px]", "h-[160px]"];
+
+  const productivityBars = useMemo(() => {
+    if (stats.weeklyActivity.length === 0) {
+      return Array.from({ length: 7 }, () => 40);
+    }
+
+    const max = Math.max(...stats.weeklyActivity.map((item) => item.count), 1);
+    return stats.weeklyActivity.map((item) => Math.max(40, Math.round((item.count / max) * 180)));
+  }, [stats.weeklyActivity]);
+
+  const now = useMemo(() => new Date(), []);
+
+  const periodChange = (currentPeriodStart: Date, previousPeriodStart: Date, previousPeriodEnd: Date) => {
+    const current = allTasks.filter((task) => task.status === "done" && new Date(task.updatedAt) >= currentPeriodStart).length;
+    const previous = allTasks.filter((task) => {
+      const updated = new Date(task.updatedAt);
+      return task.status === "done" && updated >= previousPeriodStart && updated < previousPeriodEnd;
+    }).length;
+
+    if (previous === 0) {
+      return current === 0 ? 0 : 100;
+    }
+
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  const weeklyChange = useMemo(() => {
+    const startCurrentWeek = new Date(now);
+    startCurrentWeek.setDate(now.getDate() - now.getDay());
+    startCurrentWeek.setHours(0, 0, 0, 0);
+
+    const startPreviousWeek = new Date(startCurrentWeek);
+    startPreviousWeek.setDate(startCurrentWeek.getDate() - 7);
+
+    return periodChange(startCurrentWeek, startPreviousWeek, startCurrentWeek);
+  }, [allTasks, now]);
+
+  const monthlyChange = useMemo(() => {
+    const startCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    return periodChange(startCurrentMonth, startPreviousMonth, startCurrentMonth);
+  }, [allTasks, now]);
+
+  const historyUsers = useMemo(() => {
+    const entries: Array<{ key: string; label: string; userId?: string }> = [{ key: "mine", label: "Yours", userId: currentUser?.id }];
+
+    for (const member of members) {
+      if (member.userId !== currentUser?.id) {
+        entries.push({ key: member.userId, label: member.user.name, userId: member.userId });
+      }
+    }
+
+    return entries;
+  }, [currentUser?.id, members]);
+
+  useEffect(() => {
+    if (historyUsers.length > 0 && !historyUsers.some((user) => user.key === selectedHistoryUser)) {
+      setSelectedHistoryUser(historyUsers[0].key);
+    }
+  }, [historyUsers, selectedHistoryUser]);
+
+  const activeHistoryUserId = historyUsers.find((user) => user.key === selectedHistoryUser)?.userId;
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+  const activeDays = useMemo(() => {
+    const result = new Set<number>();
+
+    for (const task of allTasks) {
+      if (activeHistoryUserId && task.assigneeId !== activeHistoryUserId) {
+        continue;
+      }
+
+      const date = new Date(task.updatedAt);
+      if (date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()) {
+        result.add(date.getDate());
+      }
+    }
+
+    return result;
+  }, [activeHistoryUserId, allTasks, now]);
+
+  const statusSummary = useMemo(() => {
+    const groups: Array<{ label: string; count: number }> = [
+      { label: "To Do", count: allTasks.filter((task) => task.status === "todo").length },
+      { label: "In Progress", count: allTasks.filter((task) => task.status === "in_progress").length },
+      { label: "Done", count: allTasks.filter((task) => task.status === "done").length }
+    ];
+
+    return groups;
+  }, [allTasks]);
 
   return (
     <PageWrapper>
@@ -207,18 +302,18 @@ export default function DashboardPage() {
             <article className="ink-block p-4">
               <div className="grid grid-cols-[1fr_0.8fr] gap-4">
                 <div className="flex h-[240px] items-end gap-3 rounded-3xl bg-[var(--bg-page)]/10 p-4">
-                  {productivityBars.map((heightClass, index) => (
-                    <span key={index} className={`w-full rounded-full bg-[var(--bg-card)] ${heightClass}`} />
+                  {productivityBars.map((height, index) => (
+                    <span key={index} className="w-full rounded-full bg-[var(--bg-card)]" style={{ height: `${height}px` }} />
                   ))}
                 </div>
                 <div className="space-y-3 rounded-3xl bg-[var(--bg-card)] p-3">
                   <div className="rounded-2xl border border-[var(--border-subtle)] p-3">
                     <p className="text-[13px] text-[var(--text-secondary)]">Productivity this week</p>
-                    <p className="text-[28px] font-bold">-7%</p>
+                    <p className="text-[28px] font-bold">{weeklyChange >= 0 ? `+${weeklyChange}%` : `${weeklyChange}%`}</p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border-subtle)] p-3">
                     <p className="text-[13px] text-[var(--text-secondary)]">Productivity this month</p>
-                    <p className="text-[28px] font-bold">+13%</p>
+                    <p className="text-[28px] font-bold">{monthlyChange >= 0 ? `+${monthlyChange}%` : `${monthlyChange}%`}</p>
                   </div>
                   <p className="text-[12px] text-[var(--text-secondary)]">This year vs last year</p>
                 </div>
@@ -231,21 +326,33 @@ export default function DashboardPage() {
                 <Badge>Working Days</Badge>
               </div>
               <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-                {["Yours", "Lukas", "Janny", "Andrey", "Tiffany"].map((name) => (
-                  <span key={name} className="rounded-full border border-[var(--border-subtle)] px-3 py-1 text-[12px]">{name}</span>
+                {historyUsers.map((user) => (
+                  <button
+                    key={user.key}
+                    type="button"
+                    onClick={() => setSelectedHistoryUser(user.key)}
+                    className={`rounded-full border px-3 py-1 text-[12px] ${
+                      selectedHistoryUser === user.key
+                        ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-text)]"
+                        : "border-[var(--border-subtle)]"
+                    }`}
+                  >
+                    {user.label}
+                  </button>
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-2 text-center">
-                {Array.from({ length: 30 }).map((_, index) => {
-                  const active = [1, 4, 5, 7, 11, 13, 17, 20, 21, 25, 29].includes(index);
+                {Array.from({ length: daysInMonth }).map((_, index) => {
+                  const day = index + 1;
+                  const active = activeDays.has(day);
                   return (
                     <span
-                      key={index}
+                      key={day}
                       className={`inline-flex h-10 w-10 items-center justify-center rounded-full text-[14px] ${
                         active ? "bg-[var(--bg-page)] text-[var(--text-primary)]" : "border border-[var(--border-subtle)]"
                       }`}
                     >
-                      {index + 1}
+                      {day}
                     </span>
                   );
                 })}
@@ -259,13 +366,15 @@ export default function DashboardPage() {
               <h2 className="text-[32px] font-bold leading-none">Schedule</h2>
               <Badge>{monthYearLabel}</Badge>
             </div>
-            <p className="mb-3 text-[14px] text-[var(--text-secondary)]">15 Upcoming Tasks</p>
+            <p className="mb-3 text-[14px] text-[var(--text-secondary)]">{upcoming.length} Upcoming Tasks</p>
             <div className="grid gap-4 lg:grid-cols-[0.9fr_1fr]">
               <div className="accent-block p-3">
                 <p className="text-[28px] font-bold leading-none">Process</p>
                 <div className="mt-3 space-y-2">
-                  {["In Test", "Reviewed", "Complete"].map((item) => (
-                    <div key={item} className="rounded-full bg-[var(--bg-page)] px-3 py-2 text-[13px]">{item}</div>
+                  {statusSummary.map((item) => (
+                    <div key={item.label} className="rounded-full bg-[var(--bg-page)] px-3 py-2 text-[13px]">
+                      {item.label} ({item.count})
+                    </div>
                   ))}
                 </div>
               </div>
