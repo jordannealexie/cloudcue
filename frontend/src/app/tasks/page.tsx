@@ -110,6 +110,15 @@ export default function TasksPage() {
 
       {totalTasks === 0 ? (
         <div className="surface-card p-6 text-center">
+          <svg width="122" height="72" viewBox="0 0 122 72" fill="none" className="mx-auto mb-4" aria-hidden="true">
+            <rect x="14" y="10" width="94" height="52" rx="10" stroke="#3D5387" strokeWidth="3" />
+            <path d="M30 25h46" stroke="#7C83AD" strokeWidth="3" strokeLinecap="round" />
+            <path d="M30 36h62" stroke="#7C83AD" strokeWidth="3" strokeLinecap="round" />
+            <path d="M30 47h38" stroke="#7C83AD" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="24" cy="25" r="3" fill="#C2F04B" />
+            <circle cx="24" cy="36" r="3" fill="#BFA9BA" />
+            <circle cx="24" cy="47" r="3" fill="#BFA9BA" />
+          </svg>
           <p className="text-[18px] font-semibold">Nothing here</p>
           <p className="text-[13px] text-[var(--text-secondary)]">You have no tasks in this filter.</p>
           <Link href="/projects" className="mt-2 inline-block text-[13px] text-[var(--accent)]">

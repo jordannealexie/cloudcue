@@ -1,8 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Sans+3:wght@400;600;700&family=Nunito:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Lora:wght@400;600;700&family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --app-font-family: Inter, system-ui, sans-serif;
   --bg-page: #F3EEF6;
   --bg-card: #FFFFFF;
   --bg-card-2: #ECEFFA;
@@ -64,11 +67,12 @@ body {
     linear-gradient(165deg, var(--bg-page) 0%, var(--bg-card-2) 120%);
   color: var(--text-primary);
   font-size: 14px;
+  font-family: var(--app-font-family);
 }
 
 button,
 a,
-input,
+input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
   min-width: 44px;
@@ -651,6 +655,11 @@ select {
   border: 1px solid var(--border-subtle);
   padding: 18px 22px 18px 48px !important;
   line-height: 1.6;
+  font-family: var(--app-font-family) !important;
+}
+
+.workspace-editor .bn-editor * {
+  font-family: var(--app-font-family) !important;
 }
 
 @media (max-width: 767px) {
@@ -668,6 +677,121 @@ select {
 .workspace-editor .bn-default-styles p,
 .workspace-editor .bn-default-styles li {
   margin: 0.15rem 0;
+}
+
+.workspace-editor .bn-editor input[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.workspace-editor .bn-editor [data-content-type="checkListItem"],
+.workspace-editor .bn-editor [data-content-type="checkListItem"] *,
+.workspace-editor .bn-editor [data-content-type="bulletListItem"],
+.workspace-editor .bn-editor [data-content-type="bulletListItem"] *,
+.workspace-editor .bn-editor [data-content-type="numberedListItem"],
+.workspace-editor .bn-editor [data-content-type="numberedListItem"] * {
+  font-size: 14px !important;
+}
+
+.workspace-editor .bn-editor .bn-block-content[data-content-type="checkListItem"],
+.workspace-editor .bn-editor .bn-block-content[data-content-type="bulletListItem"],
+.workspace-editor .bn-editor .bn-block-content[data-content-type="numberedListItem"] {
+  gap: 0.35rem;
+  min-height: 24px;
+  padding: 0 !important;
+  line-height: 1.25 !important;
+}
+
+.workspace-editor .bn-editor .bn-block-content[data-content-type="checkListItem"] > div > div > input {
+  width: 16px !important;
+  height: 16px !important;
+  transform: scale(0.9);
+  margin: 0 !important;
+  margin-inline-end: 0.35rem !important;
+  vertical-align: middle;
+}
+
+.workspace-editor .bn-editor .bn-block-content[data-content-type="checkListItem"] > div,
+.workspace-editor .bn-editor .bn-block-content[data-content-type="checkListItem"] > div > div {
+  display: flex;
+  align-items: center;
+}
+
+.workspace-editor .bn-editor .bn-block-content[data-content-type="checkListItem"] .bn-inline-content {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+.workspace-editor .bn-editor .bn-block-content[data-content-type="bulletListItem"] .bn-inline-content,
+.workspace-editor .bn-editor .bn-block-content[data-content-type="numberedListItem"] .bn-inline-content {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+.workspace-editor .bn-editor .bn-block-content[data-content-type="bulletListItem"]:before,
+.workspace-editor .bn-editor .bn-block-content[data-content-type="numberedListItem"]:before {
+  font-size: 14px !important;
+  line-height: 1 !important;
+}
+
+.workspace-editor .bn-editor .bn-block-content[data-content-type="toggleListItem"] {
+  min-height: 24px;
+  padding: 0 !important;
+}
+
+.workspace-editor .bn-editor .bn-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.workspace-editor .bn-editor .bn-toggle-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transform: rotate(0deg);
+  transition: transform 140ms ease;
+}
+
+.workspace-editor .bn-editor .bn-block-content[data-content-type="toggleListItem"] .bn-inline-content {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.workspace-editor .bn-editor .bn-toggle-trigger[data-expanded="true"] {
+  transform: rotate(90deg);
+}
+
+.workspace-editor .bn-editor .bn-block-container:has(.bn-block-content[data-content-type="toggleListItem"][data-expanded="false"]) > .bn-block-group {
+  display: none;
+}
+
+.workspace-editor .bn-editor .bn-block-container:has(.bn-block-content[data-content-type="toggleListItem"][data-expanded="false"]) > .bn-block-group + .bn-block-group {
+  display: none;
+}
+
+.workspace-editor .bn-editor [class*="m_bf2d988c"] {
+  --checkbox-size: 16px !important;
+}
+
+.workspace-editor .bn-editor [class*="m_26062bec"],
+.workspace-editor .bn-editor [class*="m_26063560"] {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
 }
 
 @media (max-width: 767px) {

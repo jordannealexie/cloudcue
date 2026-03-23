@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import PageWrapper from "../../components/layout/PageWrapper";
 import Topbar from "../../components/layout/Topbar";
 import WorkspaceHome from "../../components/workspace/WorkspaceHome";
@@ -9,6 +10,7 @@ import Button from "../../components/ui/Button";
 import { useWorkspace } from "../../hooks/useWorkspace";
 
 export default function WorkspacePage() {
+  const router = useRouter();
   const { loadTree, pages, pageTree, createPage, saveError, isLoading } = useWorkspace();
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
@@ -50,7 +52,13 @@ export default function WorkspacePage() {
         open={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
         onUseTemplate={({ title, content }) => {
-          void createPage({ title, content });
+          void (async () => {
+            const result = await createPage({ title, content });
+            if (result.meta.requestStatus === "fulfilled") {
+              const nextPage = result.payload as { id: string };
+              router.push(`/workspace/${nextPage.id}`);
+            }
+          })();
         }}
       />
     </PageWrapper>

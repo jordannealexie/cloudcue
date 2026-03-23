@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { icons } from "lucide-react";
 import Button from "../ui/Button";
 import LinkPromptModal from "../ui/LinkPromptModal";
@@ -14,9 +14,11 @@ interface PageHeaderProps {
   authorName?: string;
   updatedAt?: string;
   commentCount?: number;
+  isUploadingCover?: boolean;
   onTitleChange: (title: string) => void;
   onIconChange: (icon: string | null) => void;
   onCoverChange: (coverUrl: string | null) => void;
+  onCoverUpload?: (file: File) => Promise<void>;
 }
 
 const ICON_OPTIONS = [
@@ -38,13 +40,16 @@ export default function PageHeader({
   authorName,
   updatedAt,
   commentCount = 0,
+  isUploadingCover = false,
   onTitleChange,
   onIconChange,
-  onCoverChange
+  onCoverChange,
+  onCoverUpload
 }: PageHeaderProps) {
   const [isIconMenuOpen, setIsIconMenuOpen] = useState(false);
   const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
   const [coverInput, setCoverInput] = useState(coverUrl ?? "");
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const updatedLabel = updatedAt ? new Date(updatedAt).toLocaleString() : "just now";
 
   const openCoverModal = () => {
@@ -69,6 +74,32 @@ export default function PageHeader({
         }
       >
         <div className="absolute bottom-3 right-3 flex gap-2">
+          {onCoverUpload ? (
+            <>
+              <input
+                ref={uploadInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file || !onCoverUpload) {
+                    return;
+                  }
+
+                  void onCoverUpload(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <Button
+                variant="secondary"
+                isLoading={isUploadingCover}
+                onClick={() => uploadInputRef.current?.click()}
+              >
+                Upload cover
+              </Button>
+            </>
+          ) : null}
           <Button variant="secondary" onClick={openCoverModal}>Change cover</Button>
         </div>
       </div>

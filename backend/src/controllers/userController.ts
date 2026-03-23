@@ -44,6 +44,7 @@ export const updatePreferencesSchema = z.object({
   sidebarMode: z.enum(["full", "compact"]).optional(),
   editorWidth: z.enum(["narrow", "medium", "full"]).optional(),
   fontSize: z.enum(["small", "default", "large"]).optional(),
+  fontFamily: z.string().min(2).max(120).optional(),
   allowMemberInvites: z.boolean().optional()
 });
 

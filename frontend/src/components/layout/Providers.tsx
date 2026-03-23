@@ -21,6 +21,11 @@ function SessionBridge(): null {
       }
       return null;
     });
+
+    const storedFont = window.localStorage.getItem("cloudcue:fontFamily");
+    if (storedFont) {
+      document.documentElement.style.setProperty("--app-font-family", storedFont);
+    }
   }, []);
 
   return null;

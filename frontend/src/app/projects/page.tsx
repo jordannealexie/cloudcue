@@ -189,7 +189,17 @@ export default function ProjectsPage() {
           ))}
         </div>
       ) : visibleItems.length === 0 ? (
-        <div className="surface-card p-4 text-[var(--text-secondary)]">No projects created yet.</div>
+        <div className="surface-card p-6 text-center">
+          <svg width="124" height="72" viewBox="0 0 124 72" fill="none" className="mx-auto mb-4" aria-hidden="true">
+            <rect x="12" y="18" width="100" height="46" rx="10" stroke="#3D5387" strokeWidth="3" />
+            <path d="M20 30h84" stroke="#BFA9BA" strokeWidth="3" />
+            <circle cx="28" cy="24" r="3" fill="#C2F04B" />
+            <path d="M30 42h38" stroke="#7C83AD" strokeWidth="3" strokeLinecap="round" />
+            <path d="M30 50h52" stroke="#7C83AD" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+          <p className="mb-1 text-[18px] font-semibold">No projects yet</p>
+          <p className="text-[13px] text-[var(--text-secondary)]">Create your first project to start planning work.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {visibleItems.map((project) => {

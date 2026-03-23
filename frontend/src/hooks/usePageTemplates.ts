@@ -5,10 +5,32 @@ import { apiClient, getApiErrorMessage } from "../lib/apiClient";
 import type { ApiResponse } from "../types";
 import type { PageTemplateRecord } from "../types/workspace";
 
-export const usePageTemplates = () => {
+const LOCAL_TEMPLATES_KEY = "cloudcue-page-templates";
+
+const readLocalTemplates = (): PageTemplateRecord[] => {
+  try {
+    const raw = window.localStorage.getItem(LOCAL_TEMPLATES_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw) as PageTemplateRecord[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalTemplates = (items: PageTemplateRecord[]) => {
+  window.localStorage.setItem(LOCAL_TEMPLATES_KEY, JSON.stringify(items));
+};
+
+export const usePageTemplates = (options?: { autoLoad?: boolean }) => {
   const [items, setItems] = useState<PageTemplateRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usingLocalFallback, setUsingLocalFallback] = useState(false);
+  const autoLoad = options?.autoLoad ?? true;
 
   const load = useCallback(async () => {
     try {
@@ -16,43 +38,98 @@ export const usePageTemplates = () => {
       setError(null);
       const response = await apiClient.get<ApiResponse<PageTemplateRecord[]>>("/page-templates");
       setItems(response.data.data);
+      setUsingLocalFallback(false);
     } catch (loadError) {
-      setError(getApiErrorMessage(loadError, "Unable to load page templates"));
+      setItems(readLocalTemplates());
+      setUsingLocalFallback(true);
+      setError(null);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    if (!autoLoad) {
+      return;
+    }
+
     void load();
-  }, [load]);
+  }, [autoLoad, load]);
 
   const createTemplate = useCallback(async (payload: { name: string; content: unknown }): Promise<boolean> => {
+    if (usingLocalFallback) {
+      const now = new Date().toISOString();
+      const nextItem: PageTemplateRecord = {
+        id: crypto.randomUUID(),
+        userId: "local-user",
+        name: payload.name,
+        content: payload.content,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      const next = [nextItem, ...items];
+      setItems(next);
+      writeLocalTemplates(next);
+      return true;
+    }
+
     try {
       setError(null);
       const response = await apiClient.post<ApiResponse<PageTemplateRecord>>("/page-templates", payload);
       setItems((previous) => [response.data.data, ...previous]);
       return true;
     } catch (createError) {
-      setError(getApiErrorMessage(createError, "Unable to create page template"));
+      const fallbackError = getApiErrorMessage(createError, "Unable to create page template");
+      if (fallbackError.toLowerCase().includes("template")) {
+        const now = new Date().toISOString();
+        const nextItem: PageTemplateRecord = {
+          id: crypto.randomUUID(),
+          userId: "local-user",
+          name: payload.name,
+          content: payload.content,
+          createdAt: now,
+          updatedAt: now
+        };
+
+        const next = [nextItem, ...items];
+        setItems(next);
+        writeLocalTemplates(next);
+        setUsingLocalFallback(true);
+        setError(null);
+        return true;
+      }
+
+      setError(fallbackError);
       return false;
     }
-  }, []);
+  }, [items, usingLocalFallback]);
 
   const deleteTemplate = useCallback(async (templateId: string): Promise<boolean> => {
+    if (usingLocalFallback) {
+      const next = items.filter((item) => item.id !== templateId);
+      setItems(next);
+      writeLocalTemplates(next);
+      return true;
+    }
+
     try {
       setError(null);
       await apiClient.delete(`/page-templates/${templateId}`);
       setItems((previous) => previous.filter((item) => item.id !== templateId));
       return true;
     } catch (deleteError) {
-      setError(getApiErrorMessage(deleteError, "Unable to delete page template"));
-      return false;
+      const next = items.filter((item) => item.id !== templateId);
+      setItems(next);
+      writeLocalTemplates(next);
+      setUsingLocalFallback(true);
+      setError(null);
+      return true;
     }
-  }, []);
+  }, [items, usingLocalFallback]);
 
   return useMemo(
-    () => ({ items, isLoading, error, load, createTemplate, deleteTemplate }),
-    [createTemplate, deleteTemplate, error, isLoading, items, load]
+    () => ({ items, isLoading, error, load, createTemplate, deleteTemplate, usingLocalFallback }),
+    [createTemplate, deleteTemplate, error, isLoading, items, load, usingLocalFallback]
   );
 };

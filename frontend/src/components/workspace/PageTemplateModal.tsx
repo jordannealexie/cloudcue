@@ -12,7 +12,7 @@ interface PageTemplateModalProps {
 }
 
 export default function PageTemplateModal({ open, onClose, onUseTemplate }: PageTemplateModalProps) {
-  const { items: customTemplates, isLoading, error, deleteTemplate } = usePageTemplates();
+  const { items: customTemplates, isLoading, error, deleteTemplate, usingLocalFallback } = usePageTemplates();
 
   return (
     <Modal open={open} onClose={onClose} title="Use template">
@@ -39,6 +39,9 @@ export default function PageTemplateModal({ open, onClose, onUseTemplate }: Page
 
         <div>
           <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--text-secondary)]">Your templates</p>
+          {usingLocalFallback ? (
+            <p className="mb-2 text-[11px] text-[var(--text-secondary)]">Using local template storage in this browser.</p>
+          ) : null}
           {isLoading ? <p className="text-[12px] text-[var(--text-secondary)]">Loading templates...</p> : null}
           {!isLoading && customTemplates.length === 0 ? (
             <p className="text-[12px] text-[var(--text-secondary)]">No custom templates yet. Save one from a page menu.</p>

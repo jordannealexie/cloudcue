@@ -481,6 +481,7 @@ export const updateUserPreferences = async (
     sidebarMode?: "full" | "compact";
     editorWidth?: "narrow" | "medium" | "full";
     fontSize?: "small" | "default" | "large";
+    fontFamily?: string;
     allowMemberInvites?: boolean;
   }
 ) => {

@@ -9,15 +9,17 @@ import Toast from "../ui/Toast";
 
 interface PageWrapperProps {
   children: ReactNode;
+  hideSidebar?: boolean;
+  hideMobileNav?: boolean;
 }
 
-export default function PageWrapper({ children }: PageWrapperProps) {
+export default function PageWrapper({ children, hideSidebar = false, hideMobileNav = false }: PageWrapperProps) {
   const pathname = usePathname();
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)]">
       <div className="flex min-h-screen w-full overflow-hidden">
-        <Sidebar />
+        {!hideSidebar ? <Sidebar /> : null}
         <motion.main
           key={pathname}
           initial={{ opacity: 0, y: 6 }}
@@ -28,7 +30,7 @@ export default function PageWrapper({ children }: PageWrapperProps) {
           {children}
         </motion.main>
       </div>
-      <MobileNav />
+      {!hideMobileNav ? <MobileNav /> : null}
       <Toast />
     </div>
   );

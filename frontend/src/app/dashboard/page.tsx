@@ -101,38 +101,33 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    try {
-      const storedSeconds = Number(window.localStorage.getItem("cloudcue:timer:seconds") ?? "0");
-      const storedRunning = window.localStorage.getItem("cloudcue:timer:running") === "1";
-      const storedTodayKey = window.localStorage.getItem("cloudcue:timer:todayKey");
-      const storedTodaySeconds = Number(window.localStorage.getItem("cloudcue:timer:todaySeconds") ?? "0");
-      const storedFocus = window.localStorage.getItem("cloudcue:timer:focus") ?? "";
-      const storedHistory = window.localStorage.getItem("cloudcue:timer:history");
+    const storedSeconds = Number(window.localStorage.getItem("cloudcue:timer:seconds") ?? "0");
+    const storedRunning = window.localStorage.getItem("cloudcue:timer:running") === "1";
+    const storedTodayKey = window.localStorage.getItem("cloudcue:timer:todayKey");
+    const storedTodaySeconds = Number(window.localStorage.getItem("cloudcue:timer:todaySeconds") ?? "0");
+    const storedFocus = window.localStorage.getItem("cloudcue:timer:focus") ?? "";
+    const storedHistory = window.localStorage.getItem("cloudcue:timer:history");
 
-      if (Number.isFinite(storedSeconds) && storedSeconds >= 0) {
-        setElapsedSeconds(storedSeconds);
-      }
+    if (Number.isFinite(storedSeconds) && storedSeconds >= 0) {
+      setElapsedSeconds(storedSeconds);
+    }
 
-      if (storedTodayKey === getTodayKey() && Number.isFinite(storedTodaySeconds) && storedTodaySeconds >= 0) {
-        setTodayTrackedSeconds(storedTodaySeconds);
-      } else {
-        setTodayTrackedSeconds(0);
-      }
+    if (storedTodayKey === getTodayKey() && Number.isFinite(storedTodaySeconds) && storedTodaySeconds >= 0) {
+      setTodayTrackedSeconds(storedTodaySeconds);
+    } else {
+      setTodayTrackedSeconds(0);
+    }
 
-      setFocusLabel(storedFocus);
+    setFocusLabel(storedFocus);
+    setIsTimerRunning(storedRunning);
 
-      if (storedHistory) {
+    if (storedHistory) {
+      try {
         const parsed = JSON.parse(storedHistory) as Array<{ label: string; seconds: number; at: string }>;
         setSessionHistory(Array.isArray(parsed) ? parsed.slice(0, 8) : []);
+      } catch {
+        setSessionHistory([]);
       }
-
-      setIsTimerRunning(storedRunning);
-    } catch {
-      setElapsedSeconds(0);
-      setIsTimerRunning(false);
-      setTodayTrackedSeconds(0);
-      setFocusLabel("");
-      setSessionHistory([]);
     }
   }, []);
 

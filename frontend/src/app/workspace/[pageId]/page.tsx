@@ -11,6 +11,7 @@ import CommentThread from "../../../components/workspace/CommentThread";
 import Editor from "../../../components/workspace/Editor";
 import ShareModal from "../../../components/workspace/ShareModal";
 import Button from "../../../components/ui/Button";
+import { useUpload } from "../../../hooks/useUpload";
 import { useWorkspace } from "../../../hooks/useWorkspace";
 import { usePageTemplates } from "../../../hooks/usePageTemplates";
 import { useSocket } from "../../../hooks/useSocket";
@@ -33,10 +34,12 @@ export default function WorkspaceEditorPage() {
   const commentsError = useAppSelector((state) => state.comments.error);
   const isCommentPanelOpen = useAppSelector((state) => state.comments.isCommentPanelOpen);
   const viewers = useAppSelector((state) => state.workspace.viewers[pageId] ?? []);
-  const { createTemplate } = usePageTemplates();
+  const { createTemplate } = usePageTemplates({ autoLoad: false });
+  const { uploadFile, isUploading: isUploadingCover } = useUpload();
 
   const [shareOpen, setShareOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
 
   useSocket(pageId);
 
@@ -53,6 +56,23 @@ export default function WorkspaceEditorPage() {
       void dispatch(fetchCommentsThunk(pageId));
     }
   }, [comments.length, dispatch, loadPage, loadTree, pageId, pageTree.length, pages]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        setIsFocusMode((previous) => !previous);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        setIsFocusMode(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const page = pages[pageId];
 
@@ -140,10 +160,10 @@ export default function WorkspaceEditorPage() {
   };
 
   return (
-    <PageWrapper>
-      <Topbar />
-      <div className="grid gap-4 lg:grid-cols-[236px_1fr_300px]">
-        <aside className="surface-card hidden p-2.5 lg:block">
+    <PageWrapper hideSidebar={isFocusMode} hideMobileNav={isFocusMode}>
+      {!isFocusMode ? <Topbar /> : null}
+      <div className={`grid gap-4 ${isFocusMode ? "lg:grid-cols-1" : "lg:grid-cols-[236px_1fr_300px]"}`}>
+        <aside className={`surface-card p-2.5 ${isFocusMode ? "hidden" : "hidden lg:block"}`}>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-[15px] font-semibold">Pages</h3>
             <Button variant="ghost" className="px-2" onClick={() => void createPage({ title: "Untitled" })}>+
@@ -166,57 +186,72 @@ export default function WorkspaceEditorPage() {
         </aside>
 
         <main className="space-y-3">
-          <PageBreadcrumb segments={breadcrumb} />
-          {saveError ? <div className="surface-card p-3 text-[12px] text-[var(--blush)]">{saveError}</div> : null}
-          {commentsError ? <div className="surface-card p-3 text-[12px] text-[var(--blush)]">{commentsError}</div> : null}
-          <div className="flex items-center justify-between">
-            <div className="text-[12px] text-[var(--text-secondary)]">Also viewing: {viewers.length}</div>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => dispatch(setCommentPanelOpen(!isCommentPanelOpen))}>Comments</Button>
-              <Button variant="primary" onClick={() => setShareOpen(true)}>Share</Button>
-              <div className="relative">
-                <Button variant="ghost" onClick={() => setIsMenuOpen((open) => !open)}>More</Button>
-                {isMenuOpen ? (
-                  <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1">
-                    <button type="button" onClick={() => void copyPageLink()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
-                      Copy link
-                    </button>
-                    <button type="button" onClick={exportMarkdown} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
-                      Export markdown
-                    </button>
-                    <button type="button" onClick={() => void exportPdf()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
-                      Export PDF
-                    </button>
-                    <button type="button" onClick={() => void saveAsTemplate()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
-                      Save as template
-                    </button>
-                    <button type="button" onClick={() => void archivePage()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] text-[var(--blush)] hover:bg-[var(--bg-card-2)]">
-                      Archive page
-                    </button>
-                  </div>
-                ) : null}
+          {!isFocusMode ? <PageBreadcrumb segments={breadcrumb} /> : null}
+          {!isFocusMode && saveError ? <div className="surface-card p-3 text-[12px] text-[var(--blush)]">{saveError}</div> : null}
+          {!isFocusMode && commentsError ? <div className="surface-card p-3 text-[12px] text-[var(--blush)]">{commentsError}</div> : null}
+          {!isFocusMode ? (
+            <div className="flex items-center justify-between">
+              <div className="text-[12px] text-[var(--text-secondary)]">Also viewing: {viewers.length}</div>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => dispatch(setCommentPanelOpen(!isCommentPanelOpen))}>Comments</Button>
+                <Button variant="primary" onClick={() => setShareOpen(true)}>Share</Button>
+                <Button variant="ghost" className="px-2" onClick={() => setIsFocusMode(true)}>Focus</Button>
+                <div className="relative">
+                  <Button variant="ghost" onClick={() => setIsMenuOpen((open) => !open)}>More</Button>
+                  {isMenuOpen ? (
+                    <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1">
+                      <button type="button" onClick={() => void copyPageLink()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
+                        Copy link
+                      </button>
+                      <button type="button" onClick={exportMarkdown} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
+                        Export markdown
+                      </button>
+                      <button type="button" onClick={() => void exportPdf()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
+                        Export PDF
+                      </button>
+                      <button type="button" onClick={() => void saveAsTemplate()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
+                        Save as template
+                      </button>
+                      <button type="button" onClick={() => void archivePage()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] text-[var(--blush)] hover:bg-[var(--bg-card-2)]">
+                        Archive page
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3 py-2">
+              <p className="text-[12px] text-[var(--text-secondary)]">Focus mode • {isSaving ? "Saving..." : "Saved"}</p>
+              <Button variant="ghost" className="px-2" onClick={() => setIsFocusMode(false)}>Exit (Esc)</Button>
+            </div>
+          )}
 
-          <PageHeader
-            title={page.title}
-            emoji={page.emoji}
-            coverUrl={page.coverUrl}
-            isSaving={isSaving}
-            updatedAt={page.updatedAt}
-            authorName={comments[0]?.author?.name}
-            commentCount={comments.length}
-            onTitleChange={(title) => {
-              void updatePage({ pageId, title, contentText: title });
-            }}
-            onIconChange={(icon) => {
-              void updatePage({ pageId, emoji: icon ?? "FileText" });
-            }}
-            onCoverChange={(nextCoverUrl) => {
-              void updatePage({ pageId, coverUrl: nextCoverUrl });
-            }}
-          />
+          {!isFocusMode ? (
+            <PageHeader
+              title={page.title}
+              emoji={page.emoji}
+              coverUrl={page.coverUrl}
+              isSaving={isSaving}
+              updatedAt={page.updatedAt}
+              authorName={comments[0]?.author?.name}
+              commentCount={comments.length}
+              onTitleChange={(title) => {
+                void updatePage({ pageId, title, contentText: title });
+              }}
+              onIconChange={(icon) => {
+                void updatePage({ pageId, emoji: icon ?? "FileText" });
+              }}
+              onCoverChange={(nextCoverUrl) => {
+                void updatePage({ pageId, coverUrl: nextCoverUrl });
+              }}
+              isUploadingCover={isUploadingCover}
+              onCoverUpload={async (file) => {
+                const uploaded = await uploadFile(file, pageId);
+                await updatePage({ pageId, coverUrl: uploaded.fileUrl });
+              }}
+            />
+          ) : null}
 
           <Editor
             pageId={pageId}
@@ -227,7 +262,7 @@ export default function WorkspaceEditorPage() {
           />
         </main>
 
-        <div className="hidden lg:block">
+        <div className={`${isFocusMode ? "hidden" : "hidden lg:block"}`}>
           <CommentThread
             comments={comments}
             onPost={(content, parentId) => {
@@ -243,7 +278,7 @@ export default function WorkspaceEditorPage() {
         </div>
       </div>
 
-      {isCommentPanelOpen ? (
+      {isCommentPanelOpen && !isFocusMode ? (
         <div className="fixed inset-0 z-50 bg-black/40 lg:hidden" onClick={() => dispatch(setCommentPanelOpen(false))}>
           <div
             className="absolute inset-x-0 bottom-0 max-h-[85vh] rounded-t-[16px] bg-[var(--bg-surface)] p-3"

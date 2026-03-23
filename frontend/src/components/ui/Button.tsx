@@ -22,7 +22,7 @@ export default function Button({ variant = "primary", isLoading = false, childre
     <button
       type="button"
       aria-label={typeof children === "string" ? children : props["aria-label"]}
-      className={`rounded-[10px] min-h-[40px] min-w-[44px] px-4 text-sm font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)] disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]} ${className}`}
+      className={`rounded-[10px] min-h-[40px] min-w-[44px] px-4 text-sm font-semibold transition duration-200 ease-out hover:-translate-y-[1px] hover:shadow-[0_8px_18px_rgba(0,0,0,0.08)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none ${variantClasses[variant]} ${className}`}
       disabled={isLoading || props.disabled}
       {...props}
     >

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import { useWorkspace } from "../../hooks/useWorkspace";
@@ -13,7 +14,8 @@ interface PageSearchProps {
 }
 
 export default function PageSearch({ open, onClose }: PageSearchProps) {
-  const { searchPages, searchResults } = useWorkspace();
+  const router = useRouter();
+  const { searchPages, searchResults, createPage } = useWorkspace();
   const [query, setQuery] = useState("");
 
   const normalizePreview = (raw?: string | null): string => {
@@ -118,9 +120,42 @@ export default function PageSearch({ open, onClose }: PageSearchProps) {
             <p className="text-[12px] text-[var(--text-secondary)]">Recent pages appear here once you start navigating.</p>
             <div className="surface-elevated p-3 text-[12px]">
               <p className="mb-2 font-semibold">Quick actions</p>
-              <p>Create new task</p>
-              <p>Create new page</p>
-              <p>Create new project</p>
+              <button
+                type="button"
+                className="block w-full rounded-md px-2 py-1 text-left transition hover:bg-[var(--bg-card)]"
+                onClick={() => {
+                  onClose();
+                  router.push("/tasks");
+                }}
+              >
+                Create new task
+              </button>
+              <button
+                type="button"
+                className="mt-1 block w-full rounded-md px-2 py-1 text-left transition hover:bg-[var(--bg-card)]"
+                onClick={() => {
+                  void (async () => {
+                    const result = await createPage({ title: "Untitled" });
+                    onClose();
+                    if (result.meta.requestStatus === "fulfilled") {
+                      const nextPage = result.payload as { id: string };
+                      router.push(`/workspace/${nextPage.id}`);
+                    }
+                  })();
+                }}
+              >
+                Create new page
+              </button>
+              <button
+                type="button"
+                className="mt-1 block w-full rounded-md px-2 py-1 text-left transition hover:bg-[var(--bg-card)]"
+                onClick={() => {
+                  onClose();
+                  router.push("/projects?new=1");
+                }}
+              >
+                Create new project
+              </button>
             </div>
           </>
         ) : null}

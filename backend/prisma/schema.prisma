@@ -190,6 +190,7 @@ model UserPreference {
   sidebarMode          String   @default("full")
   editorWidth          String   @default("medium")
   fontSize             String   @default("default")
+  fontFamily           String   @default("Inter, system-ui, sans-serif")
   allowMemberInvites   Boolean  @default(true)
   updatedAt            DateTime @updatedAt
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)

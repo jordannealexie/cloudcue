@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Avatar from "../ui/Avatar";
 import { useAppSelector } from "../../hooks/useAppStore";
@@ -70,6 +70,7 @@ const NavIcon = ({ kind }: { kind: string }) => {
 };
 
 export default function Sidebar() {
+  const router = useRouter();
   const pathname = usePathname();
   const user = useAppSelector((state) => state.auth.user);
   const projects = useAppSelector((state) => state.projects.items);
@@ -276,7 +277,13 @@ export default function Sidebar() {
         open={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
         onUseTemplate={({ title, content }) => {
-          void createPage({ title, content });
+          void (async () => {
+            const result = await createPage({ title, content });
+            if (result.meta.requestStatus === "fulfilled") {
+              const nextPage = result.payload as { id: string };
+              router.push(`/workspace/${nextPage.id}`);
+            }
+          })();
         }}
       />
     </aside>

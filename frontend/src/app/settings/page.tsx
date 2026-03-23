@@ -30,13 +30,60 @@ interface UserPreferences {
   sidebarMode: "full" | "compact";
   editorWidth: "narrow" | "medium" | "full";
   fontSize: "small" | "default" | "large";
+  fontFamily: string;
   allowMemberInvites: boolean;
 }
+
+const FONT_OPTIONS = [
+  { label: "System UI", value: "Inter, system-ui, sans-serif" },
+  { label: "Segoe UI", value: "'Segoe UI', Tahoma, sans-serif" },
+  { label: "Helvetica Neue", value: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+  { label: "Avenir", value: "Avenir, 'Avenir Next', sans-serif" },
+  { label: "Fira Sans", value: "'Fira Sans', 'Segoe UI', sans-serif" },
+  { label: "IBM Plex Sans", value: "'IBM Plex Sans', 'Segoe UI', sans-serif" },
+  { label: "Source Sans", value: "'Source Sans 3', 'Segoe UI', sans-serif" },
+  { label: "Nunito", value: "Nunito, 'Segoe UI', sans-serif" },
+  { label: "Poppins", value: "Poppins, 'Segoe UI', sans-serif" },
+  { label: "Manrope", value: "Manrope, 'Segoe UI', sans-serif" },
+  { label: "Merriweather", value: "Merriweather, Georgia, serif" },
+  { label: "Lora", value: "Lora, Georgia, serif" },
+  { label: "Georgia", value: "Georgia, 'Times New Roman', serif" },
+  { label: "DM Mono", value: "'DM Mono', 'Courier New', monospace" },
+  { label: "JetBrains Mono", value: "'JetBrains Mono', 'SFMono-Regular', monospace" },
+  { label: "IBM Plex Mono", value: "'IBM Plex Mono', 'Courier New', monospace" }
+];
 
 interface UserSession {
   id: string;
   createdAt: string;
   expiresAt: string;
+}
+
+interface SettingsToggleProps {
+  checked: boolean;
+  ariaLabel: string;
+  onToggle: () => void;
+}
+
+function SettingsToggle({ checked, ariaLabel, onToggle }: SettingsToggleProps) {
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onToggle}
+      className={`relative inline-flex h-7 w-12 items-center rounded-full border p-1 transition ${
+        checked
+          ? "border-[var(--accent)] bg-[var(--accent)]"
+          : "border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--bg-card-2)_72%,#A4AEB9)]"
+      }`}
+    >
+      <span
+        className={`h-5 w-5 rounded-full bg-[var(--bg-card)] shadow-[0_1px_4px_rgba(0,0,0,0.2)] transition-transform ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  );
 }
 
 const defaultPreferences: UserPreferences = {
@@ -49,6 +96,7 @@ const defaultPreferences: UserPreferences = {
   sidebarMode: "full",
   editorWidth: "medium",
   fontSize: "default",
+  fontFamily: "Inter, system-ui, sans-serif",
   allowMemberInvites: true
 };
 
@@ -62,6 +110,7 @@ export default function SettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
+  const [draftFontFamily, setDraftFontFamily] = useState(defaultPreferences.fontFamily);
   const [preferencesMessage, setPreferencesMessage] = useState<string | null>(null);
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
@@ -78,10 +127,12 @@ export default function SettingsPage() {
           apiClient.get<{ data: UserSession[] }>("/users/sessions")
         ]);
 
-        setPreferences(preferencesResponse.data.data);
+        setPreferences({ ...defaultPreferences, ...preferencesResponse.data.data });
+        setDraftFontFamily(preferencesResponse.data.data.fontFamily ?? defaultPreferences.fontFamily);
         setSessions(sessionsResponse.data.data);
       } catch (error) {
         setPreferences(defaultPreferences);
+        setDraftFontFamily(defaultPreferences.fontFamily);
         setSessions([]);
         setSecurityMessage(getApiErrorMessage(error, "Unable to load security settings"));
       }
@@ -89,6 +140,16 @@ export default function SettingsPage() {
 
     void run();
   }, []);
+
+  useEffect(() => {
+    const activeFont = preferences.fontFamily || "Inter, system-ui, sans-serif";
+    document.documentElement.style.setProperty("--app-font-family", activeFont);
+    window.localStorage.setItem("cloudcue:fontFamily", activeFont);
+  }, [preferences.fontFamily]);
+
+  useEffect(() => {
+    setDraftFontFamily(preferences.fontFamily || defaultPreferences.fontFamily);
+  }, [preferences.fontFamily]);
 
   const tabs = useMemo(
     () => [
@@ -342,22 +403,33 @@ export default function SettingsPage() {
                   { label: "Someone mentions me", key: "notifyMention" },
                   { label: "Weekly email digest", key: "emailWeeklyDigest" }
                 ].map((item) => (
-                  <label key={item.key} className="surface-elevated flex items-center justify-between p-3 text-[13px]">
-                    {item.label}
-                    <input
-                      type="checkbox"
+                  <div key={item.key} className="surface-elevated flex items-center justify-between p-3 text-[13px]">
+                    <span>{item.label}</span>
+                    <SettingsToggle
                       checked={preferences[item.key as keyof UserPreferences] as boolean}
-                      onChange={(event) =>
+                      ariaLabel={`Toggle ${item.label}`}
+                      onToggle={() =>
                         void savePreferences({
-                          [item.key]: event.target.checked
+                          [item.key]: !(preferences[item.key as keyof UserPreferences] as boolean)
                         } as Partial<UserPreferences>)
                       }
                     />
-                  </label>
+                  </div>
                 ))}
               </div>
               {preferencesMessage ? <p className="text-[12px] text-[var(--text-secondary)]">{preferencesMessage}</p> : null}
-              <Button variant="secondary" onClick={() => void savePreferences(preferences)}>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  void savePreferences({
+                    notifyTaskAssigned: preferences.notifyTaskAssigned,
+                    notifyTaskOverdue: preferences.notifyTaskOverdue,
+                    notifyTaskComment: preferences.notifyTaskComment,
+                    notifyMention: preferences.notifyMention,
+                    emailWeeklyDigest: preferences.emailWeeklyDigest
+                  })
+                }
+              >
                 Save preferences
               </Button>
             </div>
@@ -396,6 +468,45 @@ export default function SettingsPage() {
                 </Button>
               </div>
               <p className="text-[12px] text-[var(--text-secondary)]">Theme preference is stored to your profile.</p>
+              <div className="surface-elevated p-3">
+                <label className="mb-2 block text-[12px] font-semibold">Font family</label>
+                <select
+                  value={draftFontFamily}
+                  onChange={(event) => setDraftFontFamily(event.target.value)}
+                  className="h-11 w-full rounded-[10px] border border-[var(--border)] bg-[var(--bg-card)] px-3 text-[13px]"
+                  style={{ fontFamily: draftFontFamily }}
+                >
+                  {FONT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value} style={{ fontFamily: option.value }}>
+                      {option.label} - Aa Bb Cc
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-2 flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      document.documentElement.style.setProperty("--app-font-family", draftFontFamily);
+                      window.localStorage.setItem("cloudcue:fontFamily", draftFontFamily);
+                      void savePreferences({ fontFamily: draftFontFamily });
+                    }}
+                  >
+                    Apply font
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setDraftFontFamily(defaultPreferences.fontFamily);
+                      document.documentElement.style.setProperty("--app-font-family", defaultPreferences.fontFamily);
+                      window.localStorage.setItem("cloudcue:fontFamily", defaultPreferences.fontFamily);
+                      void savePreferences({ fontFamily: defaultPreferences.fontFamily });
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </div>
+                <p className="mt-2 text-[11px] text-[var(--text-secondary)]">Applied across dashboard, workspace, and editor text.</p>
+              </div>
             </div>
           ) : null}
 
@@ -403,14 +514,14 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <h2 className="text-[20px] font-semibold">Workspace Settings</h2>
               <Input label="Workspace name" value="CloudCue Workspace" readOnly />
-              <label className="surface-elevated flex items-center justify-between p-3 text-[13px]">
-                Allow members to invite others
-                <input
-                  type="checkbox"
+              <div className="surface-elevated flex items-center justify-between p-3 text-[13px]">
+                <span>Allow members to invite others</span>
+                <SettingsToggle
                   checked={preferences.allowMemberInvites}
-                  onChange={(event) => void savePreferences({ allowMemberInvites: event.target.checked })}
+                  ariaLabel="Toggle member invites"
+                  onToggle={() => void savePreferences({ allowMemberInvites: !preferences.allowMemberInvites })}
                 />
-              </label>
+              </div>
             </div>
           ) : null}
 
