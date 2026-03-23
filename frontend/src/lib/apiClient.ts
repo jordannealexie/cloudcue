@@ -5,6 +5,7 @@ import type { ApiResponse } from "../types";
 
 let accessToken: string | null = null;
 let refreshHandler: (() => Promise<string | null>) | null = null;
+let refreshInFlight: Promise<string | null> | null = null;
 
 export const setAccessToken = (token: string | null): void => {
   accessToken = token;
@@ -48,10 +49,30 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiResponse<null>>) => {
     const originalRequest = error.config as typeof error.config & { _retry?: boolean };
+    const requestUrl = originalRequest?.url ?? "";
+    const isAuthEndpoint =
+      requestUrl.includes("/auth/refresh") ||
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register") ||
+      requestUrl.includes("/auth/logout") ||
+      requestUrl.includes("/auth/forgot-password") ||
+      requestUrl.includes("/auth/reset-password");
+    const shouldTryRefresh =
+      error.response?.status === 401 &&
+      !originalRequest?._retry &&
+      !isAuthEndpoint &&
+      Boolean(refreshHandler) &&
+      Boolean(accessToken);
 
-    if (error.response?.status === 401 && !originalRequest?._retry && refreshHandler) {
+    if (shouldTryRefresh && refreshHandler) {
       originalRequest._retry = true;
-      const refreshed = await refreshHandler();
+      if (!refreshInFlight) {
+        refreshInFlight = refreshHandler().finally(() => {
+          refreshInFlight = null;
+        });
+      }
+
+      const refreshed = await refreshInFlight;
 
       if (refreshed && originalRequest?.headers) {
         originalRequest.headers.Authorization = `Bearer ${refreshed}`;

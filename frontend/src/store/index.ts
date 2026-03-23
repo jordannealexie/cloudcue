@@ -12,7 +12,7 @@ import {
   persistStore
 } from "redux-persist";
 import storage from "redux-persist/lib/storage";
-import authReducer from "./slices/authSlice";
+import authReducer, { loginThunk, logoutThunk, registerThunk } from "./slices/authSlice";
 import projectsReducer from "./slices/projectsSlice";
 import tasksReducer from "./slices/tasksSlice";
 import uiReducer from "./slices/uiSlice";
@@ -21,7 +21,7 @@ import workspaceReducer from "./slices/workspaceSlice";
 import commentsReducer from "./slices/commentsSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 
-const rootReducer = combineReducers({
+const appReducer = combineReducers({
   auth: authReducer,
   projects: projectsReducer,
   tasks: tasksReducer,
@@ -31,6 +31,36 @@ const rootReducer = combineReducers({
   comments: commentsReducer,
   notifications: notificationsReducer
 });
+
+const resetOnAuthActionTypes = new Set([
+  registerThunk.fulfilled.type,
+  loginThunk.fulfilled.type,
+  logoutThunk.fulfilled.type
+]);
+
+const rootReducer = (
+  state: ReturnType<typeof appReducer> | undefined,
+  action: { type: string }
+) => {
+  if (state && resetOnAuthActionTypes.has(action.type)) {
+    // Keep visual preferences while clearing user-scoped cached entities.
+    return appReducer(
+      {
+        auth: state.auth,
+        projects: undefined,
+        tasks: undefined,
+        ui: state.ui,
+        theme: state.theme,
+        workspace: undefined,
+        comments: undefined,
+        notifications: undefined
+      } as unknown as ReturnType<typeof appReducer>,
+      action
+    );
+  }
+
+  return appReducer(state, action);
+};
 
 const persistedReducer = persistReducer(
   {

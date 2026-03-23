@@ -5,10 +5,13 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc -p tsconfig.json",
+    "build": "node scripts/prisma-generate-safe.cjs && tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "env:check": "tsx src/utils/validateEnv.ts",
     "prisma:generate": "prisma generate",
+    "prisma:generate:safe": "node scripts/prisma-generate-safe.cjs",
+    "test:upload-security": "node tests/upload-security.smoke.js",
+    "test:backend-smoke": "node tests/backend-regression.smoke.js",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts"
   },

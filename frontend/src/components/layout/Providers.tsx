@@ -5,7 +5,7 @@ import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { ThemeProvider } from "next-themes";
 import { persistor, store } from "../../store";
-import { setRefreshHandler } from "../../lib/apiClient";
+import { setAccessToken, setRefreshHandler } from "../../lib/apiClient";
 import { refreshAccessTokenThunk } from "../../store/slices/authSlice";
 
 interface ProvidersProps {
@@ -14,6 +14,9 @@ interface ProvidersProps {
 
 function SessionBridge(): null {
   useEffect(() => {
+    const persistedToken = store.getState().auth.accessToken;
+    setAccessToken(persistedToken ?? null);
+
     setRefreshHandler(async () => {
       const result = await store.dispatch(refreshAccessTokenThunk());
       if (refreshAccessTokenThunk.fulfilled.match(result)) {

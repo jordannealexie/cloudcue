@@ -68,6 +68,11 @@ docker compose exec backend npx prisma db seed
 - STORAGE_SECRET_KEY: S3/MinIO secret key
 - STORAGE_BUCKET: Upload bucket
 - STORAGE_PUBLIC_URL: Public URL base for files
+- BACKEND_PUBLIC_URL: Public backend origin used for local-fallback upload URLs (default http://localhost:4000)
+- STORAGE_FALLBACK_LOCAL: Enable local disk upload fallback when MinIO/S3 is unavailable
+- STORAGE_FORCE_LOCAL: Always use local disk uploads regardless of MinIO/S3 status
+- LOCAL_UPLOAD_TOKEN_SECRET: HMAC secret used to sign local upload tokens (falls back to JWT_SECRET)
+- STORAGE_SYNC_INTERVAL_MS: Interval for background local-to-storage sync worker (default 60000)
 - CLIENT_URL: Allowed frontend origin for Socket.io
 - SMTP_HOST: SMTP host for transactional email
 - SMTP_PORT: SMTP port
@@ -109,11 +114,14 @@ Theme toggle is in the top control bar on dashboard and workspace pages.
 2. npm install
 3. copy .env.example to .env
 4. npm run prisma:generate
+	- If Prisma fails with EPERM rename lock on Windows, use npm run prisma:generate:safe
 5. npm run dev
 
 Optional preflight check:
 
 6. npm run env:check
+7. npm run test:upload-security
+8. npm run test:backend-smoke
 
 ### Frontend
 
@@ -121,6 +129,10 @@ Optional preflight check:
 2. npm install
 3. ensure NEXT_PUBLIC_API_URL is set (for direct API: http://localhost:4000/api)
 4. npm run dev
+
+From repository root, you can run all backend smoke checks in one command:
+
+1. npm run test:backend:all
 
 ## Schema Migration Checklist
 
@@ -161,3 +173,11 @@ If you are in a non-migration local workflow:
 - Nginx unified entry: http://localhost
 - MinIO API: http://localhost:9000
 - MinIO Console: http://localhost:9001
+
+## Storage Fallback (No MinIO)
+
+- When MinIO/S3 is unavailable, uploads automatically fall back to local disk in backend/storage/uploads.
+- Fallback files are served by the backend at /api/local-files/....
+- Local upload links are signed and replay-protected with one-time DB nonces in upload_nonces.
+- Local fallback uploads validate file signatures (magic bytes) against declared MIME types.
+- A background sync worker migrates local fallback references back to MinIO/S3 when storage recovers.
