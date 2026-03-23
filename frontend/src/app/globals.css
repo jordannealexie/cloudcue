@@ -274,6 +274,371 @@ select {
   animation: overlay-in 180ms ease;
 }
 
+@keyframes auth-float {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -12px, 0) rotate(1deg); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
+@keyframes auth-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(18px, -10px, 0) scale(1.03); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes auth-grid-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-ribbon-float {
+  0% { transform: rotate(-8deg) translate3d(0, 0, 0); }
+  50% { transform: rotate(-5deg) translate3d(0, -12px, 0); }
+  100% { transform: rotate(-8deg) translate3d(0, 0, 0); }
+}
+
+@keyframes auth-dots-pulse {
+  0% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(1.05); }
+  100% { opacity: 0.2; transform: scale(1); }
+}
+
+@keyframes auth-beam-shift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0.25; }
+  50% { transform: translate3d(0, -10px, 0) rotate(1.8deg); opacity: 0.45; }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0.25; }
+}
+
+@keyframes auth-ring-spin {
+  0% { transform: rotate(0deg); opacity: 0.26; }
+  50% { opacity: 0.4; }
+  100% { transform: rotate(360deg); opacity: 0.26; }
+}
+
+@keyframes cloud-stroke-dash {
+  0% { stroke-dashoffset: 0; opacity: 0.92; }
+  50% { stroke-dashoffset: -28; opacity: 1; }
+  100% { stroke-dashoffset: -56; opacity: 0.92; }
+}
+
+@keyframes cloud-accent-pulse {
+  0% { opacity: 0.5; transform: translateX(0); }
+  50% { opacity: 0.95; transform: translateX(8px); }
+  100% { opacity: 0.5; transform: translateX(0); }
+}
+
+.auth-shell {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 2;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--border) 34%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 84%, white);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 26px 70px color-mix(in srgb, var(--accent) 12%, transparent);
+  animation: page-enter 260ms ease;
+}
+
+.auth-split {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 440px);
+  justify-content: start;
+  gap: 30px;
+}
+
+.auth-side-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--bg-card) 78%, transparent),
+    color-mix(in srgb, var(--bg-card-2) 68%, transparent)
+  );
+  background-image:
+    radial-gradient(circle at 16% 20%, color-mix(in srgb, var(--blush) 18%, transparent), transparent 42%),
+    linear-gradient(160deg, color-mix(in srgb, var(--bg-card) 78%, transparent), color-mix(in srgb, var(--bg-card-2) 68%, transparent));
+  padding: 38px 40px;
+  min-height: 590px;
+}
+
+.auth-side-note {
+  margin-top: 34px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.auth-brand-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 280px;
+}
+
+.auth-bg-orb {
+  position: absolute;
+  z-index: 0;
+  border-radius: 9999px;
+  filter: blur(5px);
+  pointer-events: none;
+  animation: auth-drift 8s ease-in-out infinite;
+}
+
+.auth-bg-orb-left {
+  width: 360px;
+  height: 360px;
+  left: -140px;
+  top: 10%;
+  background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--blush) 54%, transparent), transparent 65%);
+}
+
+.auth-bg-orb-right {
+  width: 420px;
+  height: 420px;
+  right: -180px;
+  bottom: -90px;
+  background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 68%);
+  animation-delay: 1.4s;
+}
+
+.auth-bg-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--border) 26%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--border) 20%, transparent) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(circle at 50% 40%, black 0%, transparent 70%);
+  animation: auth-grid-in 380ms ease;
+}
+
+.auth-bg-arc {
+  position: absolute;
+  width: 620px;
+  height: 620px;
+  right: 10%;
+  top: -260px;
+  z-index: 1;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--border) 28%, transparent);
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  opacity: 0.58;
+  transform: rotate(8deg);
+  pointer-events: none;
+}
+
+.auth-bg-spark {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  right: 22%;
+  bottom: 8%;
+  z-index: 1;
+  opacity: 0.62;
+  pointer-events: none;
+  background: conic-gradient(
+    from 140deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--blush) 42%, transparent) 60deg,
+    transparent 120deg,
+    color-mix(in srgb, var(--accent) 34%, transparent) 200deg,
+    transparent 260deg,
+    color-mix(in srgb, var(--border) 36%, transparent) 320deg,
+    transparent 360deg
+  );
+  filter: blur(14px);
+}
+
+.auth-bg-ribbon {
+  position: absolute;
+  width: 460px;
+  height: 120px;
+  left: 12%;
+  bottom: 14%;
+  z-index: 1;
+  border-radius: 9999px;
+  pointer-events: none;
+  opacity: 0.56;
+  background: linear-gradient(
+    95deg,
+    color-mix(in srgb, var(--blush) 58%, transparent),
+    color-mix(in srgb, var(--accent) 52%, transparent),
+    transparent
+  );
+  filter: blur(12px);
+  animation: auth-ribbon-float 5.8s ease-in-out infinite;
+}
+
+.auth-bg-dots {
+  position: absolute;
+  width: 320px;
+  height: 200px;
+  right: 14%;
+  top: 18%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.45;
+  background-image:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 58%, transparent) 2px, transparent 2px),
+    radial-gradient(circle, color-mix(in srgb, var(--blush) 48%, transparent) 1.8px, transparent 1.8px);
+  background-size: 18px 18px, 24px 24px;
+  background-position: 0 0, 10px 12px;
+  mask-image: radial-gradient(circle at center, black 0%, transparent 75%);
+  animation: auth-dots-pulse 5.9s ease-in-out infinite;
+}
+
+.auth-bg-beam {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  width: 420px;
+  height: 140px;
+  border-radius: 9999px;
+  filter: blur(11px);
+  animation: auth-beam-shift 6.4s ease-in-out infinite;
+}
+
+.auth-bg-beam-left {
+  left: -120px;
+  top: 22%;
+  transform: rotate(-10deg);
+  background: linear-gradient(95deg, color-mix(in srgb, var(--accent) 58%, transparent), transparent 72%);
+}
+
+.auth-bg-beam-right {
+  right: -120px;
+  bottom: 24%;
+  transform: rotate(12deg);
+  background: linear-gradient(95deg, color-mix(in srgb, var(--blush) 62%, transparent), transparent 72%);
+  animation-delay: 1.3s;
+}
+
+.auth-bg-ring-small {
+  position: absolute;
+  z-index: 1;
+  width: 240px;
+  height: 240px;
+  left: 44%;
+  top: 14%;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--border) 44%, transparent);
+  border-top-color: transparent;
+  border-right-color: transparent;
+  pointer-events: none;
+  animation: auth-ring-spin 20s linear infinite;
+}
+
+.cloudcue-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 34px;
+}
+
+.cloudcue-logo {
+  width: 54px;
+  height: 34px;
+  animation: auth-float 5.4s ease-in-out infinite;
+}
+
+.cloudcue-logo-hero {
+  width: 206px;
+  height: 132px;
+}
+
+.cloudcue-logo-path {
+  stroke-dasharray: 70 20;
+  animation: cloud-stroke-dash 8.8s ease-in-out infinite;
+}
+
+.cloudcue-logo-accent {
+  animation: cloud-accent-pulse 5.2s ease-in-out infinite;
+}
+
+.auth-social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  border-radius: 11px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-card-2) 82%, white);
+  color: var(--text-primary);
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: transform 190ms ease, border-color 190ms ease, background-color 190ms ease;
+}
+
+@media (hover: hover) {
+  .auth-social-btn:hover {
+    transform: translateY(-1px);
+    border-color: var(--border);
+    background: color-mix(in srgb, var(--bg-card-2) 92%, white);
+  }
+}
+
+@media (max-width: 767px) {
+  .auth-bg-orb-left {
+    width: 260px;
+    height: 260px;
+    left: -110px;
+  }
+
+  .auth-bg-orb-right {
+    width: 300px;
+    height: 300px;
+    right: -120px;
+    bottom: -80px;
+  }
+
+  .auth-bg-arc,
+  .auth-bg-spark,
+  .auth-bg-ribbon,
+  .auth-bg-dots,
+  .auth-bg-beam,
+  .auth-bg-ring-small {
+    display: none;
+  }
+
+  .auth-card {
+    border-radius: 18px;
+    box-shadow: 0 20px 50px color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-split {
+    grid-template-columns: minmax(0, 440px) minmax(560px, 1fr);
+    align-items: stretch;
+  }
+}
+
 .workspace-editor.bn-container {
   --bn-colors-editor-background: var(--editor-bg);
   --bn-colors-editor-text: var(--text-primary);
