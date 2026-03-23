@@ -10,9 +10,10 @@ interface CommentThreadProps {
   comments: PageComment[];
   onPost: (content: string, parentId?: string) => void;
   onResolve: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
-export default function CommentThread({ comments, onPost, onResolve }: CommentThreadProps) {
+export default function CommentThread({ comments, onPost, onResolve, onDelete }: CommentThreadProps) {
   const [content, setContent] = useState("");
 
   return (
@@ -27,7 +28,7 @@ export default function CommentThread({ comments, onPost, onResolve }: CommentTh
 
       <div className="space-y-2">
         {comments.map((comment) => (
-          <CommentItem key={comment.id} comment={comment} onResolve={onResolve} />
+          <CommentItem key={comment.id} comment={comment} onResolve={onResolve} onReply={onPost} onDelete={onDelete} />
         ))}
       </div>
 

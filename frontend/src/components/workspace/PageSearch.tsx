@@ -16,6 +16,63 @@ export default function PageSearch({ open, onClose }: PageSearchProps) {
   const { searchPages, searchResults } = useWorkspace();
   const [query, setQuery] = useState("");
 
+  const normalizePreview = (raw?: string | null): string => {
+    if (!raw) {
+      return "No preview";
+    }
+
+    const trimmed = raw.trim();
+
+    // Older content may contain serialized editor JSON. Parse and extract readable text.
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown;
+        const bucket: string[] = [];
+
+        const visit = (value: unknown) => {
+          if (!value) {
+            return;
+          }
+
+          if (typeof value === "string") {
+            if (value.trim().length > 0) {
+              bucket.push(value.trim());
+            }
+            return;
+          }
+
+          if (Array.isArray(value)) {
+            value.forEach(visit);
+            return;
+          }
+
+          if (typeof value === "object") {
+            Object.entries(value as Record<string, unknown>).forEach(([key, child]) => {
+              if (key === "text" && typeof child === "string") {
+                if (child.trim().length > 0) {
+                  bucket.push(child.trim());
+                }
+                return;
+              }
+
+              visit(child);
+            });
+          }
+        };
+
+        visit(parsed);
+        const parsedText = bucket.join(" ").replace(/\s+/g, " ").trim();
+        if (parsedText.length > 0) {
+          return parsedText;
+        }
+      } catch (_error) {
+        // Fall through to generic cleanup.
+      }
+    }
+
+    return trimmed.replace(/[{}\[\]"]+/g, " ").replace(/\s+/g, " ").trim();
+  };
+
   const highlight = (text: string, needle: string) => {
     if (!needle.trim()) {
       return text;
@@ -77,7 +134,7 @@ export default function PageSearch({ open, onClose }: PageSearchProps) {
               <span>{highlight(result.title, query)}</span>
             </p>
             <p className="text-[12px] text-[var(--text-secondary)]">
-              {highlight(result.contentText?.slice(0, 140) ?? "No preview", query)}
+              {highlight(normalizePreview(result.contentText).slice(0, 160), query)}
             </p>
           </Link>
         ))}

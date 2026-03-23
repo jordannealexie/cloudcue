@@ -34,6 +34,7 @@ export const inviteIdSchema = z.object({
 });
 
 export const updatePreferencesSchema = z.object({
+  pinnedItems: z.array(z.string().min(1).max(200)).max(5).optional(),
   notifyTaskAssigned: z.boolean().optional(),
   notifyTaskOverdue: z.boolean().optional(),
   notifyTaskComment: z.boolean().optional(),

@@ -28,14 +28,37 @@ const formatDuration = (totalSeconds: number): string => {
   return `${hours}:${minutes}:${seconds}`;
 };
 
+const getDayGreeting = (hour: number): string => {
+  if (hour >= 5 && hour < 12) {
+    return "Good morning";
+  }
+
+  if (hour >= 12 && hour < 17) {
+    return "Good afternoon";
+  }
+
+  if (hour >= 17 && hour < 21) {
+    return "Good evening";
+  }
+
+  return "Working late";
+};
+
+const getTodayKey = (): string => new Date().toISOString().slice(0, 10);
+
 export default function DashboardPage() {
   const { items: projects, loadProjects } = useProjects();
   const { byProjectId } = useTasks();
   const currentUser = useAppSelector((state) => state.auth.user);
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [serviceMessage, setServiceMessage] = useState<string | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [todayTrackedSeconds, setTodayTrackedSeconds] = useState(0);
+  const [focusLabel, setFocusLabel] = useState("");
+  const [sessionHistory, setSessionHistory] = useState<Array<{ label: string; seconds: number; at: string }>>([]);
+  const [greeting, setGreeting] = useState("Hello");
   const [selectedHistoryUser, setSelectedHistoryUser] = useState<string>("mine");
   const monthYearLabel = useMemo(
     () => new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" }),
@@ -51,12 +74,15 @@ export default function DashboardPage() {
   useEffect(() => {
     const run = async (): Promise<void> => {
       try {
+        setIsDashboardLoading(true);
         const response = await apiClient.get<ApiResponse<DashboardStats>>("/dashboard/stats");
         setStats(response.data.data);
         setServiceMessage(null);
       } catch (_error) {
         setStats(defaultStats);
         setServiceMessage(getApiErrorMessage(_error, "Unable to load dashboard stats right now."));
+      } finally {
+        setIsDashboardLoading(false);
       }
     };
 
@@ -64,18 +90,49 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    const syncGreeting = () => {
+      setGreeting(getDayGreeting(new Date().getHours()));
+    };
+
+    syncGreeting();
+    const id = window.setInterval(syncGreeting, 60_000);
+
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     try {
       const storedSeconds = Number(window.localStorage.getItem("cloudcue:timer:seconds") ?? "0");
       const storedRunning = window.localStorage.getItem("cloudcue:timer:running") === "1";
+      const storedTodayKey = window.localStorage.getItem("cloudcue:timer:todayKey");
+      const storedTodaySeconds = Number(window.localStorage.getItem("cloudcue:timer:todaySeconds") ?? "0");
+      const storedFocus = window.localStorage.getItem("cloudcue:timer:focus") ?? "";
+      const storedHistory = window.localStorage.getItem("cloudcue:timer:history");
 
       if (Number.isFinite(storedSeconds) && storedSeconds >= 0) {
         setElapsedSeconds(storedSeconds);
+      }
+
+      if (storedTodayKey === getTodayKey() && Number.isFinite(storedTodaySeconds) && storedTodaySeconds >= 0) {
+        setTodayTrackedSeconds(storedTodaySeconds);
+      } else {
+        setTodayTrackedSeconds(0);
+      }
+
+      setFocusLabel(storedFocus);
+
+      if (storedHistory) {
+        const parsed = JSON.parse(storedHistory) as Array<{ label: string; seconds: number; at: string }>;
+        setSessionHistory(Array.isArray(parsed) ? parsed.slice(0, 8) : []);
       }
 
       setIsTimerRunning(storedRunning);
     } catch {
       setElapsedSeconds(0);
       setIsTimerRunning(false);
+      setTodayTrackedSeconds(0);
+      setFocusLabel("");
+      setSessionHistory([]);
     }
   }, []);
 
@@ -86,6 +143,7 @@ export default function DashboardPage() {
 
     const id = window.setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
+      setTodayTrackedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => window.clearInterval(id);
@@ -95,10 +153,14 @@ export default function DashboardPage() {
     try {
       window.localStorage.setItem("cloudcue:timer:seconds", String(elapsedSeconds));
       window.localStorage.setItem("cloudcue:timer:running", isTimerRunning ? "1" : "0");
+      window.localStorage.setItem("cloudcue:timer:todayKey", getTodayKey());
+      window.localStorage.setItem("cloudcue:timer:todaySeconds", String(todayTrackedSeconds));
+      window.localStorage.setItem("cloudcue:timer:focus", focusLabel);
+      window.localStorage.setItem("cloudcue:timer:history", JSON.stringify(sessionHistory));
     } catch {
       // Ignore storage errors in restricted environments.
     }
-  }, [elapsedSeconds, isTimerRunning]);
+  }, [elapsedSeconds, isTimerRunning, todayTrackedSeconds, focusLabel, sessionHistory]);
 
   const upcoming = useMemo(
     () => Object.values(byProjectId).flat().sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? "")).slice(0, 5),
@@ -231,10 +293,22 @@ export default function DashboardPage() {
           ) : null}
 
           <div>
-            <h1 className="text-[42px] font-bold leading-[1] tracking-[-0.02em]">Good morning</h1>
+            <h1 className="text-[42px] font-bold leading-[1] tracking-[-0.02em]">{greeting}</h1>
             <p className="mt-1 text-[16px] text-[var(--text-secondary)]">Here is what is on your plate today.</p>
           </div>
 
+          {isDashboardLoading ? (
+            <div className="grid gap-4 md:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <article key={index} className="surface-card p-4">
+                  <div className="h-4 w-24 animate-pulse rounded bg-[var(--bg-card-2)]" />
+                  <div className="mt-4 h-10 w-20 animate-pulse rounded bg-[var(--bg-card-2)]" />
+                  <div className="mt-4 h-2 w-full animate-pulse rounded bg-[var(--bg-card-2)]" />
+                  <div className="mt-3 h-3 w-2/3 animate-pulse rounded bg-[var(--bg-card-2)]" />
+                </article>
+              ))}
+            </div>
+          ) : (
           <div className="grid gap-4 md:grid-cols-4">
             <article className="surface-card rotate-[-3deg] p-4">
               <p className="text-[14px] font-semibold">Tasks</p>
@@ -262,12 +336,14 @@ export default function DashboardPage() {
               </div>
             </article>
 
-            <article className="surface-card flex flex-col items-center justify-center border-dashed p-4 text-center">
-              <p className="text-[28px] leading-none">Add New Board</p>
+            <article className="surface-card relative overflow-hidden border border-[color-mix(in_srgb,var(--accent)_28%,transparent)] p-4 text-center">
+              <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[color-mix(in_srgb,var(--accent)_24%,transparent)] blur-2xl" aria-hidden />
+              <p className="text-[26px] font-semibold leading-none tracking-[-0.02em]">Add New Board</p>
+              <p className="mt-2 text-[12px] text-[var(--text-secondary)]">Create a project board for your next workflow.</p>
               <Link
                 href="/projects?new=1"
                 aria-label="Add board"
-                className="mt-5 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-text)]"
+                className="mt-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--accent)_55%,transparent)] bg-[var(--accent)] text-[var(--accent-text)] shadow-[0_10px_25px_color-mix(in_srgb,var(--accent)_28%,transparent)]"
               >
                 +
               </Link>
@@ -297,6 +373,7 @@ export default function DashboardPage() {
               </div>
             </article>
           </div>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-[1.65fr_1fr]">
             <article className="ink-block p-4">
@@ -403,6 +480,21 @@ export default function DashboardPage() {
           <article className="ink-block p-4">
             <p className="text-[30px] font-bold leading-none">Time Tracker</p>
             <p className="mt-4 text-[52px] font-bold leading-none">{formatDuration(elapsedSeconds)}</p>
+            <p className="mt-2 text-[12px] text-[var(--text-secondary)]">Today tracked: {formatDuration(todayTrackedSeconds)}</p>
+
+            <div className="mt-3">
+              <label htmlFor="focus-task" className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-secondary)]">
+                Focus task
+              </label>
+              <input
+                id="focus-task"
+                value={focusLabel}
+                onChange={(event) => setFocusLabel(event.target.value)}
+                placeholder="What are you working on?"
+                className="w-full rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-hint)]"
+              />
+            </div>
+
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
@@ -423,6 +515,44 @@ export default function DashboardPage() {
               >
                 ■
               </button>
+              <button
+                type="button"
+                aria-label="Log session"
+                onClick={() => {
+                  if (elapsedSeconds === 0) {
+                    return;
+                  }
+
+                  const entry = {
+                    label: focusLabel.trim() || "Unlabeled focus session",
+                    seconds: elapsedSeconds,
+                    at: new Date().toISOString()
+                  };
+
+                  setSessionHistory((prev) => [entry, ...prev].slice(0, 8));
+                  setIsTimerRunning(false);
+                  setElapsedSeconds(0);
+                }}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card)] px-4 text-[12px] font-semibold"
+              >
+                Log
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-3">
+              <p className="text-[12px] font-semibold">Recent sessions</p>
+              {sessionHistory.length === 0 ? (
+                <p className="mt-1 text-[11px] text-[var(--text-secondary)]">No sessions logged yet.</p>
+              ) : (
+                <div className="mt-2 space-y-1.5">
+                  {sessionHistory.slice(0, 3).map((item) => (
+                    <div key={`${item.at}-${item.seconds}`} className="flex items-center justify-between text-[12px]">
+                      <span className="truncate text-[var(--text-secondary)]">{item.label}</span>
+                      <span className="font-semibold">{formatDuration(item.seconds)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </article>
         </div>

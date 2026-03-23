@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { sendSuccess } from "../utils/http";
-import { confirmUpload, generatePresignedUpload, removeUpload } from "../services/uploadService";
+import { confirmUpload, generateAvatarPresignedUpload, generatePresignedUpload, removeUpload } from "../services/uploadService";
 
 export const presignSchema = z.object({
   fileName: z.string().min(1),
@@ -35,6 +35,12 @@ export const confirmSchema = z.object({
   fileId: z.string().uuid()
 });
 
+export const avatarPresignSchema = z.object({
+  fileName: z.string().min(1),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+  fileSize: z.number().int().positive().max(5 * 1024 * 1024)
+});
+
 export const postPresign = async (req: Request, res: Response) => {
   const data = await generatePresignedUpload(req.body);
   return sendSuccess(res, data, "Upload url generated", 201);
@@ -43,6 +49,15 @@ export const postPresign = async (req: Request, res: Response) => {
 export const postConfirmUpload = async (req: Request, res: Response) => {
   const data = await confirmUpload(req.body.fileId);
   return sendSuccess(res, data, "Upload confirmed");
+};
+
+export const postAvatarPresign = async (req: Request, res: Response) => {
+  const data = await generateAvatarPresignedUpload({
+    fileName: req.body.fileName,
+    mimeType: req.body.mimeType,
+    userId: req.user!.userId
+  });
+  return sendSuccess(res, data, "Avatar upload url generated", 201);
 };
 
 export const deleteUpload = async (req: Request, res: Response) => {

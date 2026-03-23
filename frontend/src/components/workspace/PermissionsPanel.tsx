@@ -26,7 +26,7 @@ export default function PermissionsPanel({ pageId }: PermissionsPanelProps) {
 
   return (
     <div className="surface-card space-y-4 p-4">
-      <h3 className="text-[20px] font-semibold">Permissions</h3>
+      <h3 className="text-[18px] font-semibold">Permissions</h3>
       <div className="space-y-2">
         {permissions.map((permission) => (
           <div key={permission.id} className="surface-elevated flex items-center justify-between p-2">
@@ -42,7 +42,7 @@ export default function PermissionsPanel({ pageId }: PermissionsPanelProps) {
                   await updatePermissionRole(pageId, permission.userId, nextRole);
                   setPermissions((prev) => prev.map((item) => (item.id === permission.id ? { ...item, role: nextRole } : item)));
                 }}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2"
+                className="h-9 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 text-[13px]"
               >
                 <option value="viewer">Viewer</option>
                 <option value="editor">Editor</option>
@@ -61,7 +61,7 @@ export default function PermissionsPanel({ pageId }: PermissionsPanelProps) {
 
       <div className="space-y-2">
         <Input label="Invite user id" value={userId} onChange={(event) => setUserId(event.target.value)} />
-        <select value={role} onChange={(event) => setRole(event.target.value as "viewer" | "editor" | "admin")} className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2">
+        <select value={role} onChange={(event) => setRole(event.target.value as "viewer" | "editor" | "admin")} className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 text-[13px]">
           <option value="viewer">Viewer</option>
           <option value="editor">Editor</option>
           <option value="admin">Admin</option>

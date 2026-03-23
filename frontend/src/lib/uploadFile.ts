@@ -29,3 +29,26 @@ export const uploadFileWithPresign = async (payload: {
 
   return { fileId, fileUrl };
 };
+
+export const uploadAvatarWithPresign = async (file: File): Promise<{ fileUrl: string }> => {
+  const presign = await apiClient.post("/upload/avatar/presign", {
+    fileName: file.name,
+    mimeType: file.type,
+    fileSize: file.size
+  });
+
+  const { uploadUrl, fileUrl } = presign.data.data as {
+    uploadUrl: string;
+    fileUrl: string;
+  };
+
+  await fetch(uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: {
+      "Content-Type": file.type
+    }
+  });
+
+  return { fileUrl };
+};

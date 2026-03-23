@@ -649,8 +649,14 @@ select {
 
 .workspace-editor .bn-editor {
   border: 1px solid var(--border-subtle);
-  padding: 18px 22px !important;
+  padding: 18px 22px 18px 48px !important;
   line-height: 1.6;
+}
+
+@media (max-width: 767px) {
+  .workspace-editor .bn-editor {
+    padding-left: 40px !important;
+  }
 }
 
 .workspace-editor .bn-default-styles h1,

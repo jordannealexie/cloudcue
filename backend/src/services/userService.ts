@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { prisma } from "./prisma";
 import { ApiError } from "../utils/http";
 import { rethrowPrismaRuntimeError } from "../utils/prismaErrors";
+import { sendPasswordResetEmail } from "./emailService";
 
 interface RegisterInput {
   email: string;
@@ -44,7 +45,11 @@ export const requestPasswordReset = async (email: string): Promise<void> => {
 
     const clientUrl = process.env.CLIENT_URL ?? "http://localhost:3000";
     const resetUrl = `${clientUrl}/reset-password?token=${token}`;
-    console.log(`Password reset link for ${email}: ${resetUrl}`);
+    await sendPasswordResetEmail({
+      to: user.email,
+      userName: user.name,
+      resetUrl
+    });
   } catch (_error) {
     rethrowPrismaRuntimeError(_error);
 
@@ -466,6 +471,7 @@ export const getUserPreferences = async (userId: string) => {
 export const updateUserPreferences = async (
   userId: string,
   payload: {
+    pinnedItems?: string[];
     notifyTaskAssigned?: boolean;
     notifyTaskOverdue?: boolean;
     notifyTaskComment?: boolean;

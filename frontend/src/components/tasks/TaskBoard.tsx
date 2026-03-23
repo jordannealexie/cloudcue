@@ -39,6 +39,13 @@ export default function TaskBoard({
       return;
     }
 
+    if (
+      result.source.droppableId === result.destination.droppableId &&
+      result.source.index === result.destination.index
+    ) {
+      return;
+    }
+
     const destinationStatus = result.destination.droppableId as TaskStatus;
     onReorder({
       taskId: result.draggableId,
@@ -75,11 +82,11 @@ export default function TaskBoard({
       <div className="kanban-scroll flex gap-4 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
         {statuses.map((status) => (
           <Droppable key={status} droppableId={status}>
-            {(dropProvided) => (
+            {(dropProvided, dropSnapshot) => (
               <section
                 ref={dropProvided.innerRef}
                 {...dropProvided.droppableProps}
-                className={`kanban-column surface-card min-h-[420px] min-w-[calc(100vw-2rem)] p-3 md:min-w-[360px] lg:min-w-0 status-${status.replace("_", "-")}`}
+                className={`kanban-column surface-card min-h-[420px] min-w-[calc(100vw-2rem)] p-3 transition md:min-w-[360px] lg:min-w-0 status-${status.replace("_", "-")} ${dropSnapshot.isDraggingOver ? "border-[var(--accent)] bg-[var(--bg-card-2)] shadow-[0_0_0_1px_var(--accent)]" : ""}`}
               >
                 <header className="mb-3 flex items-center justify-between">
                   <h3 className="text-[16px] font-semibold">{STATUS_LABELS[status]}</h3>
@@ -89,13 +96,14 @@ export default function TaskBoard({
                 <div className="space-y-3">
                   {grouped[status].map((task, index) => (
                     <Draggable key={task.id} draggableId={task.id} index={index}>
-                      {(dragProvided) => (
+                      {(dragProvided, dragSnapshot) => (
                         <div
                           ref={dragProvided.innerRef}
                           {...dragProvided.draggableProps}
                           {...dragProvided.dragHandleProps}
+                          className={`cursor-grab active:cursor-grabbing ${dragSnapshot.isDragging ? "opacity-90" : ""}`}
                         >
-                          <TaskCard task={task} onClick={() => onTaskClick(task.id)} />
+                          <TaskCard task={task} onClick={() => onTaskClick(task.id)} dragging={dragSnapshot.isDragging} />
                         </div>
                       )}
                     </Draggable>

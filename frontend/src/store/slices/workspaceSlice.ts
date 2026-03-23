@@ -80,7 +80,7 @@ export const fetchPage = createAsyncThunk("workspace/fetchPage", async (pageId: 
 
 export const createPageThunk = createAsyncThunk(
   "workspace/createPage",
-  async (payload: { title?: string; emoji?: string; parentId?: string }, { rejectWithValue }) => {
+  async (payload: { title?: string; emoji?: string; parentId?: string; content?: unknown }, { rejectWithValue }) => {
     try {
       const response = await apiClient.post("/pages", payload);
       return response.data.data as WorkspacePage;

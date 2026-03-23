@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import Providers from "../components/layout/Providers";
+import AppErrorBoundary from "../components/layout/AppErrorBoundary";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -17,7 +18,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={manrope.className}>
-        <Providers>{children}</Providers>
+        <AppErrorBoundary>
+          <Providers>{children}</Providers>
+        </AppErrorBoundary>
       </body>
     </html>
   );

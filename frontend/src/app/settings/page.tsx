@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import PageWrapper from "../../components/layout/PageWrapper";
 import Topbar from "../../components/layout/Topbar";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import Avatar from "../../components/ui/Avatar";
 import { useAuth } from "../../hooks/useAuth";
 import { apiClient, getApiErrorMessage } from "../../lib/apiClient";
 import { useTheme } from "../../hooks/useTheme";
+import { uploadAvatarWithPresign } from "../../lib/uploadFile";
 
 type SettingsTab =
   | "profile"
@@ -16,7 +18,6 @@ type SettingsTab =
   | "appearance"
   | "workspace"
   | "members"
-  | "billing"
   | "integrations";
 
 interface UserPreferences {
@@ -59,6 +60,7 @@ export default function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl ?? "");
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
   const [preferencesMessage, setPreferencesMessage] = useState<string | null>(null);
   const [sessions, setSessions] = useState<UserSession[]>([]);
@@ -96,7 +98,6 @@ export default function SettingsPage() {
       { key: "appearance", label: "Appearance" },
       { key: "workspace", label: "Workspace" },
       { key: "members", label: "Members & roles" },
-      { key: "billing", label: "Billing & plan" },
       { key: "integrations", label: "Integrations" }
     ] as Array<{ key: SettingsTab; label: string }>,
     []
@@ -128,6 +129,36 @@ export default function SettingsPage() {
       setPreferencesMessage("Preferences updated");
     } catch (error) {
       setPreferencesMessage(getApiErrorMessage(error, "Unable to save preferences"));
+    }
+  };
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      setProfileMessage("Profile photo must be jpg, png, webp, or gif.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileMessage("Profile photo must be 5MB or smaller.");
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      setProfileMessage(null);
+      const uploaded = await uploadAvatarWithPresign(file);
+      setAvatarUrl(uploaded.fileUrl);
+      setProfileMessage("Profile photo uploaded. Save changes to apply it.");
+    } catch (error) {
+      setProfileMessage(getApiErrorMessage(error, "Unable to upload profile photo"));
+    } finally {
+      setUploadingAvatar(false);
+      event.target.value = "";
     }
   };
 
@@ -215,6 +246,16 @@ export default function SettingsPage() {
           {tab === "profile" ? (
             <div className="space-y-4">
               <h2 className="text-[20px] font-semibold">My Profile</h2>
+              <div className="surface-elevated flex items-center gap-3 p-3">
+                <Avatar name={name || user?.name || "User"} src={avatarUrl || user?.avatarUrl} size="md" />
+                <div className="space-y-2">
+                  <p className="text-[13px] font-semibold">Profile photo</p>
+                  <label className="inline-flex cursor-pointer items-center rounded-[10px] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-[12px] font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-card-2)]">
+                    {uploadingAvatar ? "Uploading..." : "Upload photo"}
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void handleAvatarChange(event)} className="hidden" />
+                  </label>
+                </div>
+              </div>
               <Input label="Full name" value={name} onChange={(event) => setName(event.target.value)} />
               <Input label="Avatar URL" value={avatarUrl ?? ""} onChange={(event) => setAvatarUrl(event.target.value)} />
               <Input label="Email" value={user?.email ?? ""} readOnly />
@@ -378,16 +419,6 @@ export default function SettingsPage() {
               <h2 className="text-[20px] font-semibold">Members & Roles</h2>
               <p className="text-[13px] text-[var(--text-secondary)]">Manage workspace roles from the Team page.</p>
               <Button variant="secondary" onClick={() => window.location.assign("/team")}>Open team page</Button>
-            </div>
-          ) : null}
-
-          {tab === "billing" ? (
-            <div className="space-y-4">
-              <h2 className="text-[20px] font-semibold">Billing & Plan</h2>
-              <div className="surface-elevated p-3">
-                <p className="text-[13px] font-semibold">Current plan: Pro</p>
-                <p className="text-[12px] text-[var(--text-secondary)]">Billing details can be connected to your payment provider in the next step.</p>
-              </div>
             </div>
           ) : null}
 

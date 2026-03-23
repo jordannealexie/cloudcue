@@ -14,7 +14,42 @@ interface EditorProps {
   onAutosave: (payload: { content: unknown; contentText: string }) => Promise<void>;
 }
 
-const toPlainText = (content: unknown): string => JSON.stringify(content);
+const collectText = (value: unknown, bucket: string[]) => {
+  if (!value) {
+    return;
+  }
+
+  if (typeof value === "string") {
+    if (value.trim().length > 0) {
+      bucket.push(value.trim());
+    }
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectText(item, bucket));
+    return;
+  }
+
+  if (typeof value === "object") {
+    Object.entries(value as Record<string, unknown>).forEach(([key, child]) => {
+      if (key === "text" && typeof child === "string") {
+        if (child.trim().length > 0) {
+          bucket.push(child.trim());
+        }
+        return;
+      }
+
+      collectText(child, bucket);
+    });
+  }
+};
+
+const toPlainText = (content: unknown): string => {
+  const parts: string[] = [];
+  collectText(content, parts);
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+};
 
 const getSafeInitialContent = (input: unknown): never[] | undefined => {
   if (!Array.isArray(input)) {

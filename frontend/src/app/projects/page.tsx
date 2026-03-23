@@ -15,6 +15,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PROJECT_SWATCHES } from "../../lib/constants";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import DropdownMenu from "../../components/ui/DropdownMenu";
+import { usePinnedItems } from "../../hooks/usePinnedItems";
+import { toPinnedProjectId } from "../../lib/pinnedItems";
 
 const projectSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -31,6 +34,7 @@ export default function ProjectsPage() {
   const activeModal = useAppSelector((state) => state.ui.activeModal);
   const [tab, setTab] = useState<"all" | "mine" | "shared">("all");
   const [query, setQuery] = useState("");
+  const { isPinned, togglePin } = usePinnedItems();
 
   const {
     register,
@@ -83,6 +87,44 @@ export default function ProjectsPage() {
     };
 
     return map[key] ?? "bg-[var(--accent)]";
+  };
+
+  const exportProjectCsv = (projectId: string): void => {
+    const project = items.find((entry) => entry.id === projectId);
+    if (!project) {
+      return;
+    }
+
+    const rows = [
+      ["Task ID", "Title", "Status", "Priority", "Due Date", "Assignee"],
+      ...project.tasks.map((task) => [
+        task.id,
+        task.title,
+        task.status,
+        task.priority,
+        task.dueDate ? new Date(task.dueDate).toISOString() : "",
+        task.assignee?.name ?? ""
+      ])
+    ];
+
+    const escapeCsv = (value: string): string => {
+      if (value.includes(",") || value.includes("\n") || value.includes('"')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+
+      return value;
+    };
+
+    const csv = rows.map((row) => row.map((cell) => escapeCsv(String(cell))).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${project.name.toLowerCase().replace(/\s+/g, "-")}-tasks.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
   };
 
   const visibleItems = useMemo(() => {
@@ -154,16 +196,37 @@ export default function ProjectsPage() {
             const done = project.tasks.filter((task) => task.status === "done").length;
             const total = Math.max(project.tasks.length, 1);
             const progress = Math.round((done / total) * 100);
+            const pinnedId = toPinnedProjectId(project.id);
 
             return (
-              <Link key={project.id} href={`/projects/${project.id}`} className="surface-card block overflow-hidden p-4 transition hover:-translate-y-0.5">
-                <div className={`mb-3 h-3 w-full rounded-full ${swatchClass(project.color)}`} />
-                <h3 className="text-[16px] font-semibold">{project.name}</h3>
-                <p className="mb-3 text-[12px] text-[var(--text-secondary)]">{project.members.length} members • {project.tasks.length} tasks</p>
-                <div className="h-2 rounded-full bg-[var(--bg-card-2)]">
-                  <div className={`h-2 rounded-full bg-[var(--accent)] ${progressClass(progress)}`} />
+              <article key={project.id} className="surface-card overflow-hidden p-4 transition hover:-translate-y-0.5">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className={`h-3 w-full rounded-full ${swatchClass(project.color)}`} />
+                  <DropdownMenu
+                    trigger={<span className="text-[16px]">...</span>}
+                    items={[
+                      {
+                        label: isPinned(pinnedId) ? "Unpin project" : "Pin project",
+                        onClick: () => {
+                          void togglePin(pinnedId);
+                        }
+                      },
+                      {
+                        label: "Export tasks as CSV",
+                        onClick: () => exportProjectCsv(project.id)
+                      }
+                    ]}
+                  />
                 </div>
-              </Link>
+
+                <Link href={`/projects/${project.id}`} className="block">
+                  <h3 className="text-[16px] font-semibold">{project.name}</h3>
+                  <p className="mb-3 text-[12px] text-[var(--text-secondary)]">{project.members.length} members • {project.tasks.length} tasks</p>
+                  <div className="h-2 rounded-full bg-[var(--bg-card-2)]">
+                    <div className={`h-2 rounded-full bg-[var(--accent)] ${progressClass(progress)}`} />
+                  </div>
+                </Link>
+              </article>
             );
           })}
         </div>

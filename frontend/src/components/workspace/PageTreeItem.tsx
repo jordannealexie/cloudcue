@@ -25,12 +25,12 @@ export default function PageTreeItem({ node, level = 0, activeId, onAddSubpage, 
   };
 
   return (
-    <div className="space-y-1" style={{ paddingLeft: `${level * 14}px` }}>
-      <div className={`group flex items-center justify-between rounded-lg px-2 py-1.5 ${activeId === node.id ? "bg-[var(--bg-card-2)] border-l-2 border-[var(--accent)]" : ""}`}>
+    <div className="space-y-1" style={{ paddingLeft: `${level * 12}px` }}>
+      <div className={`group flex items-center justify-between rounded-lg px-2 py-1 ${activeId === node.id ? "border-l-2 border-[var(--accent)] bg-[var(--bg-card-2)]" : ""}`}>
         {hasChildren ? (
           <button
             type="button"
-            className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded text-[var(--text-secondary)] transition hover:bg-[var(--bg-card-2)]"
+            className="mr-1 inline-flex h-4 w-4 items-center justify-center rounded text-[var(--text-secondary)] transition hover:bg-[var(--bg-card-2)]"
             onClick={() => setExpanded((prev) => !prev)}
             aria-label={expanded ? "Collapse page" : "Expand page"}
           >
@@ -39,11 +39,11 @@ export default function PageTreeItem({ node, level = 0, activeId, onAddSubpage, 
             </svg>
           </button>
         ) : (
-          <span className="mr-1 inline-flex h-5 w-5" />
+          <span className="mr-1 inline-flex h-4 w-4" />
         )}
 
-        <Link href={`/workspace/${node.id}`} className="flex flex-1 items-center gap-2 text-[14px] font-medium">
-          <PageIcon icon={node.emoji} className="h-5 w-5 text-[var(--text-secondary)]" />
+        <Link href={`/workspace/${node.id}`} className="flex flex-1 items-center gap-1.5 text-[13px] font-medium leading-tight">
+          <PageIcon icon={node.emoji} className="h-4 w-4 text-[var(--text-secondary)]" />
           <span className="truncate">{node.title}</span>
         </Link>
 
@@ -51,7 +51,7 @@ export default function PageTreeItem({ node, level = 0, activeId, onAddSubpage, 
           type="button"
           onClick={handleDelete}
           aria-label={`Delete ${node.title}`}
-          className="mr-1 inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--blush)] opacity-0 transition hover:bg-[var(--bg-card-2)] group-hover:opacity-100"
+          className="mr-1 inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--blush)] opacity-0 transition hover:bg-[var(--bg-card-2)] group-hover:opacity-100"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M4 7h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />

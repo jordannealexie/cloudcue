@@ -80,3 +80,12 @@ export interface PageFile {
   mimeType: string;
   uploadedAt: string;
 }
+
+export interface PageTemplateRecord {
+  id: string;
+  userId: string;
+  name: string;
+  content: unknown;
+  createdAt: string;
+  updatedAt: string;
+}

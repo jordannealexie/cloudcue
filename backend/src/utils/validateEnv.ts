@@ -21,3 +21,8 @@ if (missingEnvVars.length > 0) {
 if ((process.env.JWT_SECRET ?? "").length < 16 || (process.env.JWT_REFRESH_SECRET ?? "").length < 16) {
   console.warn("JWT secrets are shorter than recommended. Use at least 16 characters in production.");
 }
+
+const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+if (!hasSmtp) {
+  console.warn("SMTP is not fully configured. Forgot/reset password emails will fallback to server logs.");
+}

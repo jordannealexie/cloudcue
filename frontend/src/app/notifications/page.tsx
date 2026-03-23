@@ -120,7 +120,20 @@ export default function NotificationsPage() {
       </div>
 
       {isLoading ? (
-        <div className="surface-card p-6 text-center text-[13px] text-[var(--text-secondary)]">Loading notifications...</div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <article key={index} className="surface-card border-l-4 border-transparent p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="w-full space-y-2">
+                  <div className="h-4 w-48 animate-pulse rounded bg-[var(--bg-card-2)]" />
+                  <div className="h-3 w-4/5 animate-pulse rounded bg-[var(--bg-card-2)]" />
+                </div>
+                <div className="h-3 w-14 animate-pulse rounded bg-[var(--bg-card-2)]" />
+              </div>
+              <div className="mt-3 h-3 w-24 animate-pulse rounded bg-[var(--bg-card-2)]" />
+            </article>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <div className="surface-card p-6 text-center">
           <p className="text-[18px] font-semibold">You are all caught up</p>

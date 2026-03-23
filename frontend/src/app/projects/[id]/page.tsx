@@ -15,9 +15,13 @@ import ConfirmModal from "../../../components/ui/ConfirmModal";
 import { PROJECT_SWATCHES } from "../../../lib/constants";
 import { useProjects } from "../../../hooks/useProjects";
 import { useTasks } from "../../../hooks/useTasks";
+import { useAppDispatch } from "../../../hooks/useAppStore";
+import { setToast } from "../../../store/slices/uiSlice";
+import confetti from "canvas-confetti";
 import type { Task, TaskPriority, TaskStatus } from "../../../types";
 
 export default function ProjectDetailPage() {
+    const dispatch = useAppDispatch();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const projectId = params.id;
@@ -48,6 +52,7 @@ export default function ProjectDetailPage() {
   const [newTaskAssigneeId, setNewTaskAssigneeId] = useState("");
   const [isDeleteProjectConfirmOpen, setIsDeleteProjectConfirmOpen] = useState(false);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [hasCelebratedCompletion, setHasCelebratedCompletion] = useState(false);
   const [editProjectName, setEditProjectName] = useState("");
   const [editProjectDescription, setEditProjectDescription] = useState("");
   const [editProjectColor, setEditProjectColor] = useState("#3D5387");
@@ -86,6 +91,13 @@ export default function ProjectDetailPage() {
       return priorityMatch && assigneeMatch && dueMatch;
     });
   }, [assigneeFilter, dueFilter, priorityFilter, tasks]);
+
+  useEffect(() => {
+    const allDone = tasks.length > 0 && tasks.every((task) => task.status === "done");
+    if (!allDone && hasCelebratedCompletion) {
+      setHasCelebratedCompletion(false);
+    }
+  }, [hasCelebratedCompletion, tasks]);
 
   const selectedTask = filteredTasks.find((task) => task.id === selectedTaskId) ?? null;
 
@@ -173,6 +185,13 @@ export default function ProjectDetailPage() {
     destinationStatus: TaskStatus;
     destinationPosition: number;
   }): Promise<void> => {
+    const projectedTasks = tasks.map((task) =>
+      task.id === payload.taskId
+        ? { ...task, status: payload.destinationStatus, position: payload.destinationPosition }
+        : task
+    );
+    const allDoneAfterMove = projectedTasks.length > 0 && projectedTasks.every((task) => task.status === "done");
+
     optimisticMove({
       projectId,
       taskId: payload.taskId,
@@ -188,6 +207,16 @@ export default function ProjectDetailPage() {
     });
 
     if (result.meta.requestStatus === "fulfilled") {
+      if (allDoneAfterMove && !hasCelebratedCompletion) {
+        confetti({
+          particleCount: 90,
+          spread: 72,
+          origin: { y: 0.72 }
+        });
+        dispatch(setToast({ message: "Project complete! 🎉", type: "success" }));
+        setHasCelebratedCompletion(true);
+      }
+
       setMutationMessage(null);
       return;
     }

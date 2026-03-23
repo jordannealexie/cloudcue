@@ -7,6 +7,8 @@ import Topbar from "../../components/layout/Topbar";
 import Badge from "../../components/ui/Badge";
 import { useProjects } from "../../hooks/useProjects";
 import { useTasks } from "../../hooks/useTasks";
+import { usePinnedItems } from "../../hooks/usePinnedItems";
+import { toPinnedTaskId } from "../../lib/pinnedItems";
 import type { Task } from "../../types";
 
 type TaskFilter = "all" | "today" | "week" | "overdue" | "completed";
@@ -32,6 +34,7 @@ const isThisWeek = (dateValue: string): boolean => {
 export default function TasksPage() {
   const { items: projects, loadProjects, error: projectsError } = useProjects();
   const { byProjectId, loadTasks, error: tasksError } = useTasks();
+  const { isPinned, togglePin } = usePinnedItems();
   const [filter, setFilter] = useState<TaskFilter>("all");
   const error = projectsError ?? tasksError;
 
@@ -132,6 +135,15 @@ export default function TasksPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void togglePin(toPinnedTaskId(task.id));
+                        }}
+                        className="rounded-md border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition hover:bg-[var(--bg-card)]"
+                      >
+                        {isPinned(toPinnedTaskId(task.id)) ? "Unpin" : "Pin"}
+                      </button>
                       <Badge>{task.priority}</Badge>
                       <Badge>{task.status.replace("_", " ")}</Badge>
                     </div>

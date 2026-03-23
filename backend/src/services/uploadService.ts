@@ -61,6 +61,32 @@ export const generatePresignedUpload = async (payload: {
   }
 };
 
+export const generateAvatarPresignedUpload = async (payload: {
+  fileName: string;
+  mimeType: string;
+  userId: string;
+}) => {
+  try {
+    const safeFileName = payload.fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
+    const key = `avatars/${payload.userId}/${Date.now()}-${safeFileName}`;
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: payload.mimeType
+    });
+
+    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 * 5 });
+    const fileUrl = `${publicBaseUrl}/${key}`;
+
+    return {
+      uploadUrl,
+      fileUrl
+    };
+  } catch (error) {
+    throw new ApiError(500, "Unable to generate avatar upload url");
+  }
+};
+
 export const confirmUpload = async (fileId: string) => {
   try {
     return await prisma.pageFile.update({

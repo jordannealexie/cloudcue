@@ -87,6 +87,8 @@ If any required variable is missing, backend startup now fails early with an exp
 2. Unauthorized upload delete should return 403.
 3. Owner protections should block page owner role removal.
 4. High-volume writes should trigger rate limiter responses.
+5. Repeated login/register attempts should trigger auth limiter responses.
+6. Forgot password should send reset email when SMTP_* is configured.
 
 ## 6. Production Deploy Sequence
 

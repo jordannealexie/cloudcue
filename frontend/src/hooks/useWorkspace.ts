@@ -21,7 +21,7 @@ export const useWorkspace = () => {
   const loadTree = useCallback(() => dispatch(fetchPageTree()), [dispatch]);
   const loadPage = useCallback((pageId: string) => dispatch(fetchPage(pageId)), [dispatch]);
   const createPage = useCallback(
-    (payload: { title?: string; emoji?: string; parentId?: string }) => dispatch(createPageThunk(payload)),
+    (payload: { title?: string; emoji?: string; parentId?: string; content?: unknown }) => dispatch(createPageThunk(payload)),
     [dispatch]
   );
   const updatePage = useCallback(

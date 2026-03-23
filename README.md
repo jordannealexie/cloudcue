@@ -48,6 +48,11 @@ docker compose exec backend npx prisma db seed
 - STORAGE_BUCKET: Bucket name
 - STORAGE_PUBLIC_URL: Public base URL for uploaded files
 - CLIENT_URL: Frontend origin used for socket CORS
+- SMTP_HOST: SMTP host for transactional email (password reset)
+- SMTP_PORT: SMTP port (for example 587)
+- SMTP_USER: SMTP username
+- SMTP_PASS: SMTP password
+- SMTP_FROM: From address used in password reset emails
 
 ### Backend .env
 
@@ -64,6 +69,11 @@ docker compose exec backend npx prisma db seed
 - STORAGE_BUCKET: Upload bucket
 - STORAGE_PUBLIC_URL: Public URL base for files
 - CLIENT_URL: Allowed frontend origin for Socket.io
+- SMTP_HOST: SMTP host for transactional email
+- SMTP_PORT: SMTP port
+- SMTP_USER: SMTP username
+- SMTP_PASS: SMTP password
+- SMTP_FROM: Sender address for reset emails
 
 ## Switching From MinIO To Real AWS S3
 

@@ -18,6 +18,87 @@ const initialState: CommentsState = {
   error: null
 };
 
+const updateNestedComments = (
+  comments: PageComment[],
+  commentId: string,
+  updater: (comment: PageComment) => PageComment
+): PageComment[] => {
+  return comments.map((comment) => {
+    if (comment.id === commentId) {
+      return updater(comment);
+    }
+
+    if (comment.replies?.length) {
+      return {
+        ...comment,
+        replies: updateNestedComments(comment.replies, commentId, updater)
+      };
+    }
+
+    return comment;
+  });
+};
+
+const removeNestedComment = (comments: PageComment[], commentId: string): PageComment[] => {
+  return comments
+    .filter((comment) => comment.id !== commentId)
+    .map((comment) => {
+      if (!comment.replies?.length) {
+        return comment;
+      }
+
+      return {
+        ...comment,
+        replies: removeNestedComment(comment.replies, commentId)
+      };
+    });
+};
+
+const upsertCommentInTree = (comments: PageComment[], incoming: PageComment): PageComment[] => {
+  if (incoming.parentId) {
+    const parentIndex = comments.findIndex((comment) => comment.id === incoming.parentId);
+
+    if (parentIndex >= 0) {
+      const parent = comments[parentIndex];
+      const replies = parent.replies ?? [];
+      const replyIndex = replies.findIndex((reply) => reply.id === incoming.id);
+
+      const nextReplies =
+        replyIndex >= 0
+          ? replies.map((reply) => (reply.id === incoming.id ? incoming : reply))
+          : [...replies, incoming];
+
+      return comments.map((comment) =>
+        comment.id === incoming.parentId
+          ? {
+              ...comment,
+              replies: nextReplies
+            }
+          : comment
+      );
+    }
+
+    return comments.map((comment) => {
+      if (!comment.replies?.length) {
+        return comment;
+      }
+
+      return {
+        ...comment,
+        replies: upsertCommentInTree(comment.replies, incoming)
+      };
+    });
+  }
+
+  const index = comments.findIndex((comment) => comment.id === incoming.id);
+
+  if (index >= 0) {
+    return comments.map((comment) => (comment.id === incoming.id ? incoming : comment));
+  }
+
+  return [incoming, ...comments];
+};
+
 export const fetchCommentsThunk = createAsyncThunk("comments/fetch", async (pageId: string, { rejectWithValue }) => {
   try {
     const response = await apiClient.get(`/pages/${pageId}/comments`);
@@ -84,29 +165,18 @@ const commentsSlice = createSlice({
     },
     upsertCommentFromSocket(state, action: PayloadAction<{ pageId: string; comment: PageComment }>) {
       const existing = state.byPageId[action.payload.pageId] ?? [];
-      const index = existing.findIndex((comment) => comment.id === action.payload.comment.id);
-
-      if (index >= 0) {
-        existing[index] = action.payload.comment;
-        state.byPageId[action.payload.pageId] = [...existing];
-      } else {
-        state.byPageId[action.payload.pageId] = [action.payload.comment, ...existing];
-      }
+      state.byPageId[action.payload.pageId] = upsertCommentInTree(existing, action.payload.comment);
     },
     removeCommentFromSocket(state, action: PayloadAction<{ pageId: string; commentId: string }>) {
       const existing = state.byPageId[action.payload.pageId] ?? [];
-      state.byPageId[action.payload.pageId] = existing.filter((comment) => comment.id !== action.payload.commentId);
+      state.byPageId[action.payload.pageId] = removeNestedComment(existing, action.payload.commentId);
     },
     markCommentResolvedFromSocket(state, action: PayloadAction<{ pageId: string; commentId: string }>) {
       const existing = state.byPageId[action.payload.pageId] ?? [];
-      state.byPageId[action.payload.pageId] = existing.map((comment) =>
-        comment.id === action.payload.commentId
-          ? {
-              ...comment,
-              resolvedAt: new Date().toISOString()
-            }
-          : comment
-      );
+      state.byPageId[action.payload.pageId] = updateNestedComments(existing, action.payload.commentId, (comment) => ({
+        ...comment,
+        resolvedAt: new Date().toISOString()
+      }));
     }
   },
   extraReducers: (builder) => {
@@ -125,34 +195,28 @@ const commentsSlice = createSlice({
       })
       .addCase(postCommentThunk.fulfilled, (state, action) => {
         const existing = state.byPageId[action.payload.pageId] ?? [];
-        state.byPageId[action.payload.pageId] = [action.payload.comment, ...existing];
+        state.byPageId[action.payload.pageId] = upsertCommentInTree(existing, action.payload.comment);
       })
       .addCase(postCommentThunk.rejected, (state, action) => {
         state.error = (action.payload as string) ?? "Unable to post comment";
       })
       .addCase(editCommentThunk.fulfilled, (state, action) => {
         const comments = state.byPageId[action.payload.pageId] ?? [];
-        state.byPageId[action.payload.pageId] = comments.map((comment) =>
-          comment.id === action.payload.comment.id ? action.payload.comment : comment
-        );
+        state.byPageId[action.payload.pageId] = upsertCommentInTree(comments, action.payload.comment);
       })
       .addCase(editCommentThunk.rejected, (state, action) => {
         state.error = (action.payload as string) ?? "Unable to edit comment";
       })
       .addCase(deleteCommentThunk.fulfilled, (state, action) => {
         const comments = state.byPageId[action.payload.pageId] ?? [];
-        state.byPageId[action.payload.pageId] = comments.filter(
-          (comment) => comment.id !== action.payload.commentId
-        );
+        state.byPageId[action.payload.pageId] = removeNestedComment(comments, action.payload.commentId);
       })
       .addCase(deleteCommentThunk.rejected, (state, action) => {
         state.error = (action.payload as string) ?? "Unable to delete comment";
       })
       .addCase(resolveCommentThunk.fulfilled, (state, action) => {
         const comments = state.byPageId[action.payload.pageId] ?? [];
-        state.byPageId[action.payload.pageId] = comments.map((comment) =>
-          comment.id === action.payload.comment.id ? action.payload.comment : comment
-        );
+        state.byPageId[action.payload.pageId] = upsertCommentInTree(comments, action.payload.comment);
       })
       .addCase(resolveCommentThunk.rejected, (state, action) => {
         state.error = (action.payload as string) ?? "Unable to resolve comment";

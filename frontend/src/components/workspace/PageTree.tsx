@@ -13,11 +13,11 @@ interface PageTreeProps {
 
 export default function PageTree({ tree, activeId, onAddSubpage, onAddPage, onDeletePage }: PageTreeProps) {
   if (!tree.length) {
-    return <div className="text-[13px] text-[var(--text-secondary)]">No pages yet.</div>;
+    return <div className="text-[12px] text-[var(--text-secondary)]">No pages yet.</div>;
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {tree.map((node) => (
         <PageTreeItem
           key={node.id}
@@ -30,7 +30,7 @@ export default function PageTree({ tree, activeId, onAddSubpage, onAddPage, onDe
       <button
         type="button"
         onClick={onAddPage}
-        className="w-full rounded-lg border border-dashed border-[var(--border)] py-2 text-[12px]"
+        className="w-full rounded-lg border border-dashed border-[var(--border)] py-2 text-[11px] font-medium"
       >
         + Add a page
       </button>

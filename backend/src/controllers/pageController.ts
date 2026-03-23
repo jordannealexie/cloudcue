@@ -3,8 +3,11 @@ import { z } from "zod";
 import { ApiError, sendSuccess } from "../utils/http";
 import {
   archivePage,
+  createPageTemplate,
   createPage,
+  deletePageTemplate,
   getPageById,
+  listPageTemplates,
   listPageTree,
   movePage,
   restorePage,
@@ -18,6 +21,11 @@ export const createPageSchema = z.object({
   emoji: z.string().max(16).optional(),
   parentId: z.string().uuid().optional(),
   content: z.record(z.any()).or(z.array(z.any())).optional()
+});
+
+export const createPageTemplateSchema = z.object({
+  name: z.string().min(2).max(80),
+  content: z.record(z.any()).or(z.array(z.any()))
 });
 
 export const updatePageSchema = z.object({
@@ -45,6 +53,21 @@ export const patchPermissionSchema = z.object({
 export const listPages = async (req: Request, res: Response) => {
   const pages = await listPageTree(req.user!.userId);
   return sendSuccess(res, pages);
+};
+
+export const listTemplates = async (req: Request, res: Response) => {
+  const templates = await listPageTemplates(req.user!.userId);
+  return sendSuccess(res, templates);
+};
+
+export const postTemplate = async (req: Request, res: Response) => {
+  const template = await createPageTemplate(req.user!.userId, req.body);
+  return sendSuccess(res, template, "Template created", 201);
+};
+
+export const removeTemplate = async (req: Request, res: Response) => {
+  await deletePageTemplate(req.user!.userId, String(req.params.id));
+  return sendSuccess(res, null, "Template removed");
 };
 
 export const postPage = async (req: Request, res: Response) => {

@@ -137,3 +137,97 @@ export const searchPages = async (userId: string, query: string) => {
     throw new ApiError(500, "Unable to search pages");
   }
 };
+
+export const listPageTemplates = async (userId: string) => {
+  try {
+    const prismaClient = prisma as unknown as {
+      pageTemplate: {
+        findMany: (args: unknown) => Promise<unknown>;
+        create: (args: unknown) => Promise<unknown>;
+        findUnique: (args: unknown) => Promise<{ userId: string } | null>;
+        delete: (args: unknown) => Promise<unknown>;
+      };
+    };
+
+    return await prismaClient.pageTemplate.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" }
+    });
+  } catch (error) {
+    rethrowPrismaRuntimeError(error);
+    throw new ApiError(500, "Unable to load page templates");
+  }
+};
+
+export const createPageTemplate = async (userId: string, payload: { name: string; content: unknown }) => {
+  try {
+    const prismaClient = prisma as unknown as {
+      pageTemplate: {
+        create: (args: unknown) => Promise<unknown>;
+      };
+    };
+
+    return await prismaClient.pageTemplate.create({
+      data: {
+        userId,
+        name: payload.name,
+        content: payload.content as object
+      }
+    });
+  } catch (error) {
+    rethrowPrismaRuntimeError(error);
+    throw new ApiError(500, "Unable to create page template");
+  }
+};
+
+export const deletePageTemplate = async (userId: string, templateId: string) => {
+  try {
+    const prismaClient = prisma as unknown as {
+      pageTemplate: {
+        findUnique: (args: unknown) => Promise<{ userId: string } | null>;
+        delete: (args: unknown) => Promise<unknown>;
+      };
+    };
+
+    const template = await prismaClient.pageTemplate.findUnique({ where: { id: templateId } });
+    if (!template || template.userId !== userId) {
+      throw new ApiError(404, "Template not found");
+    }
+
+    await prismaClient.pageTemplate.delete({ where: { id: templateId } });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    rethrowPrismaRuntimeError(error);
+    throw new ApiError(500, "Unable to delete page template");
+  }
+};
+
+export const getPageExportData = async (id: string) => {
+  try {
+    const page = await prisma.page.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        contentText: true,
+        updatedAt: true
+      }
+    });
+
+    if (!page) {
+      throw new ApiError(404, "Page not found");
+    }
+
+    return page;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    rethrowPrismaRuntimeError(error);
+    throw new ApiError(500, "Unable to export page");
+  }
+};

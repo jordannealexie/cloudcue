@@ -24,6 +24,7 @@ model User {
   notifications Notification[]
   invitesSent   TeamInvite[]      @relation("InviteSender")
   preferences   UserPreference?
+  pageTemplates PageTemplate[]
 }
 
 model Project {
@@ -179,6 +180,7 @@ model TeamInvite {
 model UserPreference {
   id                   String   @id @default(uuid())
   userId               String   @unique
+  pinnedItems          String[] @default([])
   notifyTaskAssigned   Boolean  @default(true)
   notifyTaskOverdue    Boolean  @default(true)
   notifyTaskComment    Boolean  @default(true)
@@ -191,4 +193,16 @@ model UserPreference {
   allowMemberInvites   Boolean  @default(true)
   updatedAt            DateTime @updatedAt
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PageTemplate {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

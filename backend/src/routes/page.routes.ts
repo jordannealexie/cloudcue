@@ -1,10 +1,12 @@
 import { Router } from "express";
 import {
+  createPageTemplateSchema,
   createPageSchema,
   deletePage,
   getPage,
   getPagePermissions,
   listPages,
+  listTemplates,
   movePageSchema,
   patchMovePage,
   patchPage,
@@ -13,7 +15,9 @@ import {
   permissionsSchema,
   postPage,
   postPagePermission,
+  postTemplate,
   removePagePermission,
+  removeTemplate,
   restoreArchivedPage,
   searchPageIndex,
   updatePageSchema
@@ -26,6 +30,9 @@ const pageRouter = Router();
 pageRouter.get("/pages", listPages);
 pageRouter.post("/pages", validate(createPageSchema), postPage);
 pageRouter.get("/pages/search", searchPageIndex);
+pageRouter.get("/page-templates", listTemplates);
+pageRouter.post("/page-templates", validate(createPageTemplateSchema), postTemplate);
+pageRouter.delete("/page-templates/:id", removeTemplate);
 
 pageRouter.get("/pages/:id", checkPagePermission("viewer"), getPage);
 pageRouter.patch("/pages/:id", checkPagePermission("editor"), validate(updatePageSchema), patchPage);

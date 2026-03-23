@@ -12,8 +12,10 @@ import Editor from "../../../components/workspace/Editor";
 import ShareModal from "../../../components/workspace/ShareModal";
 import Button from "../../../components/ui/Button";
 import { useWorkspace } from "../../../hooks/useWorkspace";
+import { usePageTemplates } from "../../../hooks/usePageTemplates";
 import { useSocket } from "../../../hooks/useSocket";
 import {
+  deleteCommentThunk,
   fetchCommentsThunk,
   postCommentThunk,
   resolveCommentThunk,
@@ -31,6 +33,7 @@ export default function WorkspaceEditorPage() {
   const commentsError = useAppSelector((state) => state.comments.error);
   const isCommentPanelOpen = useAppSelector((state) => state.comments.isCommentPanelOpen);
   const viewers = useAppSelector((state) => state.workspace.viewers[pageId] ?? []);
+  const { createTemplate } = usePageTemplates();
 
   const [shareOpen, setShareOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -82,6 +85,47 @@ export default function WorkspaceEditorPage() {
     URL.revokeObjectURL(href);
   };
 
+  const exportPdf = async () => {
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) {
+      return;
+    }
+
+    const safeTitle = page.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const safeBody = (page.contentText ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br />");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${safeTitle}</title>
+          <style>
+            body { font-family: Georgia, serif; margin: 44px; color: #11131A; line-height: 1.55; }
+            h1 { margin: 0 0 18px 0; font-size: 30px; }
+            .content { font-size: 14px; white-space: normal; }
+          </style>
+        </head>
+        <body>
+          <h1>${safeTitle}</h1>
+          <div class="content">${safeBody}</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const saveAsTemplate = async () => {
+    await createTemplate({
+      name: page.title,
+      content: page.content
+    });
+  };
+
   const copyPageLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -98,11 +142,11 @@ export default function WorkspaceEditorPage() {
   return (
     <PageWrapper>
       <Topbar />
-      <div className="grid gap-4 lg:grid-cols-[240px_1fr_300px]">
-        <aside className="surface-card hidden p-3 lg:block">
+      <div className="grid gap-4 lg:grid-cols-[236px_1fr_300px]">
+        <aside className="surface-card hidden p-2.5 lg:block">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-[16px] font-semibold">Pages</h3>
-            <Button variant="ghost" onClick={() => void createPage({ title: "Untitled" })}>+
+            <h3 className="text-[15px] font-semibold">Pages</h3>
+            <Button variant="ghost" className="px-2" onClick={() => void createPage({ title: "Untitled" })}>+
             </Button>
           </div>
           <PageTree
@@ -139,6 +183,12 @@ export default function WorkspaceEditorPage() {
                     </button>
                     <button type="button" onClick={exportMarkdown} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
                       Export markdown
+                    </button>
+                    <button type="button" onClick={() => void exportPdf()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
+                      Export PDF
+                    </button>
+                    <button type="button" onClick={() => void saveAsTemplate()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-card-2)]">
+                      Save as template
                     </button>
                     <button type="button" onClick={() => void archivePage()} className="w-full rounded-lg px-3 py-2 text-left text-[12px] text-[var(--blush)] hover:bg-[var(--bg-card-2)]">
                       Archive page
@@ -186,6 +236,9 @@ export default function WorkspaceEditorPage() {
             onResolve={(id) => {
               void dispatch(resolveCommentThunk({ pageId, commentId: id }));
             }}
+            onDelete={(id) => {
+              void dispatch(deleteCommentThunk({ pageId, commentId: id }));
+            }}
           />
         </div>
       </div>
@@ -203,6 +256,9 @@ export default function WorkspaceEditorPage() {
               }}
               onResolve={(id) => {
                 void dispatch(resolveCommentThunk({ pageId, commentId: id }));
+              }}
+              onDelete={(id) => {
+                void dispatch(deleteCommentThunk({ pageId, commentId: id }));
               }}
             />
           </div>

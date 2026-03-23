@@ -7,9 +7,10 @@ import type { Task } from "../../types";
 interface TaskCardProps {
   task: Task;
   onClick: () => void;
+  dragging?: boolean;
 }
 
-export default function TaskCard({ task, onClick }: TaskCardProps) {
+export default function TaskCard({ task, onClick, dragging = false }: TaskCardProps) {
   const dueText = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date";
 
   return (
@@ -17,9 +18,14 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
       type="button"
       aria-label={`Open task ${task.title}`}
       onClick={onClick}
-      className="surface-elevated w-full p-3 text-left transition hover:border-[var(--border)]"
+      className={`surface-elevated w-full p-3 text-left transition hover:border-[var(--border)] ${dragging ? "rotate-[1deg] border-[var(--accent)] shadow-lg" : ""}`}
     >
-      <h3 className="mb-2 text-[16px] font-semibold text-[var(--text-primary)]">{task.title}</h3>
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <h3 className="text-[16px] font-semibold text-[var(--text-primary)]">{task.title}</h3>
+        <span className="rounded-md border border-[var(--border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)]">
+          Drag
+        </span>
+      </div>
       <div className="mb-3 flex items-center gap-2">
         <Badge className={`priority-${task.priority}`}>{task.priority}</Badge>
         <Badge>{dueText}</Badge>

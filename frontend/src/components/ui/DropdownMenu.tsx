@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 
 interface DropdownMenuProps {
   trigger: ReactNode;
-  items: Array<{ label: string; onClick: () => void }>;
+  items: Array<{ label: string; onClick: () => void; tone?: "default" | "danger" }>;
 }
 
 export default function DropdownMenu({ trigger, items }: DropdownMenuProps) {
@@ -21,7 +21,7 @@ export default function DropdownMenu({ trigger, items }: DropdownMenuProps) {
         {trigger}
       </button>
       {open ? (
-        <div className="pop-in absolute right-0 top-12 z-50 min-w-[180px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-modal)] p-1">
+        <div className="pop-in absolute right-0 top-10 z-50 min-w-[190px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-modal)] p-1.5 shadow-[0_14px_34px_rgba(0,0,0,0.22)]">
           {items.map((item) => (
             <button
               type="button"
@@ -30,7 +30,9 @@ export default function DropdownMenu({ trigger, items }: DropdownMenuProps) {
                 item.onClick();
                 setOpen(false);
               }}
-              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-[14px] text-[var(--text-primary)] hover:bg-[var(--bg-card-2)]"
+              className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] font-medium transition hover:bg-[var(--bg-card-2)] ${
+                item.tone === "danger" ? "text-[var(--blush)]" : "text-[var(--text-primary)]"
+              }`}
             >
               {item.label}
             </button>
