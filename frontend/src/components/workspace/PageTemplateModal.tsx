@@ -2,6 +2,7 @@
 
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import PageIcon from "./PageIcon";
 import { BUILT_IN_PAGE_TEMPLATES } from "../../lib/pageTemplates";
 import { usePageTemplates } from "../../hooks/usePageTemplates";
 
@@ -10,6 +11,21 @@ interface PageTemplateModalProps {
   onClose: () => void;
   onUseTemplate: (payload: { title: string; content: unknown }) => void;
 }
+
+const TEMPLATE_ICON_MAP: Record<string, string> = {
+  meeting_notes: "NotebookText",
+  project_brief: "Target",
+  weekly_review: "CalendarCheck",
+  bug_report: "Bug",
+  announcement: "Megaphone",
+  how_to_guide: "BookOpen",
+  sprint_plan: "CalendarRange",
+  retrospective: "Clock3",
+  release_notes: "Rocket",
+  daily_standup: "Sun",
+  decision_log: "Brain",
+  customer_interview: "Mic"
+};
 
 export default function PageTemplateModal({ open, onClose, onUseTemplate }: PageTemplateModalProps) {
   const { items: customTemplates, isLoading, error, deleteTemplate, usingLocalFallback } = usePageTemplates();
@@ -30,7 +46,13 @@ export default function PageTemplateModal({ open, onClose, onUseTemplate }: Page
                 }}
                 className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card-2)] px-3 py-2 text-left transition hover:bg-[var(--bg-card)]"
               >
-                <p className="text-[14px] font-semibold">{template.emoji} {template.name}</p>
+                <p className="flex items-center gap-2 text-[14px] font-semibold">
+                  <PageIcon
+                    icon={TEMPLATE_ICON_MAP[template.key] ?? "FileText"}
+                    className="h-4 w-4 text-[var(--text-secondary)]"
+                  />
+                  <span>{template.name}</span>
+                </p>
                 <p className="text-[11px] text-[var(--text-secondary)]">Create page from this template</p>
               </button>
             ))}

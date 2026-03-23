@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { icons } from "lucide-react";
 import Button from "../ui/Button";
 import LinkPromptModal from "../ui/LinkPromptModal";
@@ -50,12 +50,40 @@ export default function PageHeader({
   const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
   const [coverInput, setCoverInput] = useState(coverUrl ?? "");
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const iconMenuRef = useRef<HTMLDivElement | null>(null);
   const updatedLabel = updatedAt ? new Date(updatedAt).toLocaleString() : "just now";
 
   const openCoverModal = () => {
     setCoverInput(coverUrl ?? "");
     setIsCoverModalOpen(true);
   };
+
+  useEffect(() => {
+    if (!isIconMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (iconMenuRef.current && target && !iconMenuRef.current.contains(target)) {
+        setIsIconMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsIconMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isIconMenuOpen]);
 
   return (
     <div className="surface-card overflow-visible p-0">
@@ -105,7 +133,7 @@ export default function PageHeader({
       </div>
       <div className="space-y-3 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+          <div ref={iconMenuRef} className="relative">
             <Button
               variant="ghost"
               className="inline-flex items-center gap-2"

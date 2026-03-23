@@ -18,12 +18,34 @@ export default function Modal({ open, title, onClose, children }: ModalProps) {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [open, onClose]);
+
   if (!open || !mounted) {
     return null;
   }
 
   return createPortal(
-    <div className="overlay-in fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.5)] p-4 backdrop-blur-sm md:p-6">
+    <div
+      className="overlay-in fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.5)] p-4 backdrop-blur-sm md:p-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="pop-in w-full max-w-xl rounded-[16px] border border-[var(--border-subtle)] bg-[var(--bg-modal)] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h3 className="text-[16px] font-semibold text-[var(--text-primary)]">{title}</h3>

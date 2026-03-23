@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PageWrapper from "../../../components/layout/PageWrapper";
 import Topbar from "../../../components/layout/Topbar";
@@ -40,6 +40,7 @@ export default function WorkspaceEditorPage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
 
   useSocket(pageId);
 
@@ -73,6 +74,33 @@ export default function WorkspaceEditorPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (actionsMenuRef.current && target && !actionsMenuRef.current.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isMenuOpen]);
 
   const page = pages[pageId];
 
@@ -196,7 +224,7 @@ export default function WorkspaceEditorPage() {
                 <Button variant="secondary" onClick={() => dispatch(setCommentPanelOpen(!isCommentPanelOpen))}>Comments</Button>
                 <Button variant="primary" onClick={() => setShareOpen(true)}>Share</Button>
                 <Button variant="ghost" className="px-2" onClick={() => setIsFocusMode(true)}>Focus</Button>
-                <div className="relative">
+                <div ref={actionsMenuRef} className="relative">
                   <Button variant="ghost" onClick={() => setIsMenuOpen((open) => !open)}>More</Button>
                   {isMenuOpen ? (
                     <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-1">

@@ -18,6 +18,7 @@ import { useSearchParams } from "next/navigation";
 import DropdownMenu from "../../components/ui/DropdownMenu";
 import { usePinnedItems } from "../../hooks/usePinnedItems";
 import { toPinnedProjectId } from "../../lib/pinnedItems";
+import { MoreHorizontal } from "lucide-react";
 
 const projectSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -213,7 +214,7 @@ export default function ProjectsPage() {
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div className={`h-3 w-full rounded-full ${swatchClass(project.color)}`} />
                   <DropdownMenu
-                    trigger={<span className="text-[16px]">...</span>}
+                    trigger={<MoreHorizontal size={16} strokeWidth={2} />}
                     items={[
                       {
                         label: isPinned(pinnedId) ? "Unpin project" : "Pin project",

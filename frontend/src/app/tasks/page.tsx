@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Pin } from "lucide-react";
 import PageWrapper from "../../components/layout/PageWrapper";
 import Topbar from "../../components/layout/Topbar";
 import Badge from "../../components/ui/Badge";
@@ -144,15 +145,25 @@ export default function TasksPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {(() => {
+                        const pinned = isPinned(toPinnedTaskId(task.id));
+                        return (
                       <button
                         type="button"
                         onClick={() => {
                           void togglePin(toPinnedTaskId(task.id));
                         }}
-                        className="rounded-md border border-[var(--border-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)] transition hover:bg-[var(--bg-card)]"
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                          pinned
+                            ? "bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--accent)]"
+                            : "text-[var(--text-secondary)] hover:bg-[var(--bg-card)]"
+                        }`}
                       >
-                        {isPinned(toPinnedTaskId(task.id)) ? "Unpin" : "Pin"}
+                        <Pin size={11} strokeWidth={1.8} />
+                        {pinned ? "Pinned" : "Pin"}
                       </button>
+                        );
+                      })()}
                       <Badge>{task.priority}</Badge>
                       <Badge>{task.status.replace("_", " ")}</Badge>
                     </div>

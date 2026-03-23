@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Avatar from "../ui/Avatar";
 import Toggle from "../ui/Toggle";
@@ -24,6 +24,7 @@ export default function Topbar() {
   const token = useAppSelector((state) => state.auth.accessToken);
   const totalNotifications = useAppSelector((state) => state.notifications.items.length);
   const unreadCount = useAppSelector((state) => state.notifications.items.filter((item) => !item.readAt).length);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!token || totalNotifications > 0) {
@@ -55,6 +56,32 @@ export default function Topbar() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [resolvedTheme, setMode]);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (profileMenuRef.current && target && !profileMenuRef.current.contains(target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isMenuOpen]);
 
   return (
     <header className="mb-4 flex items-center justify-between gap-3 rounded-[26px] border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3.5 py-2.5">
@@ -99,7 +126,7 @@ export default function Topbar() {
         ) : null}
       </Link>
 
-      <div className="relative">
+      <div ref={profileMenuRef} className="relative">
         <button
           type="button"
           onClick={() => setIsMenuOpen((open) => !open)}
