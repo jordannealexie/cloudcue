@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { setAccessToken } from "../../../../lib/apiClient";
+import { useAppDispatch } from "../../../../hooks/useAppStore";
+import { setSession } from "../../../../store/slices/authSlice";
 import { useAuth } from "../../../../hooks/useAuth";
+import type { User } from "../../../../types";
 
 export default function SocialAuthCallbackPage() {
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refresh, me } = useAuth();
@@ -16,12 +21,32 @@ export default function SocialAuthCallbackPage() {
 
     const completeSocialLogin = async () => {
       const error = searchParams.get("error");
+      const accessTokenFromQuery = searchParams.get("accessToken");
 
       if (error) {
         if (!cancelled) {
           setErrorMessage(error);
         }
         return;
+      }
+
+      if (accessTokenFromQuery) {
+        setAccessToken(accessTokenFromQuery);
+        const meResult = await me();
+
+        if ((meResult as { meta?: { requestStatus?: string } })?.meta?.requestStatus === "fulfilled") {
+          dispatch(
+            setSession({
+              user: (meResult as { payload: User }).payload,
+              accessToken: accessTokenFromQuery
+            })
+          );
+
+          if (!cancelled) {
+            router.replace("/dashboard");
+          }
+          return;
+        }
       }
 
       const refreshed = await refresh();
@@ -45,7 +70,7 @@ export default function SocialAuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [me, refresh, router, searchParams]);
+  }, [dispatch, me, refresh, router, searchParams]);
 
   return (
     <main className="auth-shell">

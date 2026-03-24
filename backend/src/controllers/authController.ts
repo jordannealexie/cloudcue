@@ -262,9 +262,9 @@ export const googleCallback = async (req: Request, res: Response): Promise<Respo
 
     const identity = await readGoogleIdentity(code);
     const user = await upsertOAuthUser(identity);
-    await establishSession(res, user);
+    const accessToken = await establishSession(res, user);
 
-    return redirectToClientAuth(res, "?provider=google");
+    return redirectToClientAuth(res, `?provider=google&accessToken=${encodeURIComponent(accessToken)}`);
   } catch (error) {
     const message = error instanceof ApiError ? error.message : "Google sign-in failed";
     return redirectToClientAuth(res, `?provider=google&error=${encodeURIComponent(message)}`);
