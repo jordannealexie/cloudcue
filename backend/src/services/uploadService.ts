@@ -22,17 +22,16 @@ const localUploadTokenSecret = process.env.LOCAL_UPLOAD_TOKEN_SECRET ?? process.
 
 let storageReachableCache: { value: boolean; expiresAt: number } | null = null;
 let localStorageSyncRunning = false;
+const hasStorageConfig = Boolean(endpoint && accessKeyId && secretAccessKey);
 
-if (!endpoint || !accessKeyId || !secretAccessKey) {
-  throw new Error("Missing storage configuration");
-}
-
-const s3 = new S3Client({
-  endpoint,
-  region: "us-east-1",
-  forcePathStyle: true,
-  credentials: { accessKeyId, secretAccessKey }
-});
+const s3 = hasStorageConfig
+  ? new S3Client({
+      endpoint,
+      region: "us-east-1",
+      forcePathStyle: true,
+      credentials: { accessKeyId: accessKeyId as string, secretAccessKey: secretAccessKey as string }
+    })
+  : null;
 
 const isStorageUnavailableError = (error: unknown): boolean => {
   if (!error || typeof error !== "object") {
@@ -59,6 +58,14 @@ const isStorageUnavailableError = (error: unknown): boolean => {
 
 const throwStorageUnavailable = (): never => {
   throw new ApiError(503, "Storage service is unavailable. Please try again shortly.");
+};
+
+const getS3Client = (): S3Client => {
+  if (!s3) {
+    throwStorageUnavailable();
+  }
+
+  return s3 as S3Client;
 };
 
 const normalizeMimeType = (value: string | undefined): string => String(value ?? "").split(";")[0].trim().toLowerCase();
@@ -275,9 +282,10 @@ const getLocalStorageKeyFromUrl = (url: string): string | null => {
 const buildStorageUrl = (key: string) => `${publicBaseUrl}/${key}`;
 
 const pushLocalFileToStorage = async (key: string, contentType?: string) => {
+  const s3Client = getS3Client();
   const absolutePath = path.resolve(localStorageDir, key);
   const body = await fs.readFile(absolutePath);
-  await s3.send(
+  await s3Client.send(
     new PutObjectCommand({
       Bucket: bucket,
       Key: key,
@@ -462,6 +470,10 @@ export const startLocalFallbackSyncJob = () => {
 };
 
 export const checkStorageHealth = async (): Promise<boolean> => {
+  if (!s3) {
+    return false;
+  }
+
   try {
     await s3.send(new HeadBucketCommand({ Bucket: bucket }));
     return true;
@@ -550,6 +562,10 @@ export const generatePresignedUpload = async (payload: {
     return createPageLocalUpload(payload);
   }
 
+  if (!s3) {
+    throwStorageUnavailable();
+  }
+
   try {
     const safeFileName = payload.fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
     const key = `${payload.pageId}/${Date.now()}-${safeFileName}`;
@@ -559,7 +575,7 @@ export const generatePresignedUpload = async (payload: {
       ContentType: payload.mimeType
     });
 
-    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 * 5 });
+    const uploadUrl = await getSignedUrl(getS3Client(), command, { expiresIn: 60 * 5 });
     const fileUrl = `${publicBaseUrl}/${key}`;
 
     const file = await prisma.pageFile.create({
@@ -601,6 +617,10 @@ export const generateAvatarPresignedUpload = async (payload: {
     return createAvatarLocalUpload(payload);
   }
 
+  if (!s3) {
+    throwStorageUnavailable();
+  }
+
   try {
     const safeFileName = payload.fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
     const key = `avatars/${payload.userId}/${Date.now()}-${safeFileName}`;
@@ -610,7 +630,7 @@ export const generateAvatarPresignedUpload = async (payload: {
       ContentType: payload.mimeType
     });
 
-    const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 * 5 });
+    const uploadUrl = await getSignedUrl(getS3Client(), command, { expiresIn: 60 * 5 });
     const fileUrl = `${publicBaseUrl}/${key}`;
 
     return {
@@ -674,7 +694,7 @@ export const removeUpload = async (fileId: string, userId: string) => {
     const removedLocal = await removeLocalFileIfExists(file.url);
     if (!removedLocal) {
       const key = file.url.replace(`${publicBaseUrl}/`, "");
-      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+      await getS3Client().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     }
     await prisma.pageFile.delete({ where: { id: fileId } });
   } catch (error) {

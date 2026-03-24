@@ -4,15 +4,28 @@ const requiredEnvVars = [
   "DATABASE_URL",
   "JWT_SECRET",
   "JWT_REFRESH_SECRET",
+  "CLIENT_URL"
+] as const;
+
+const storageRequiredEnvVars = [
   "STORAGE_ENDPOINT",
   "STORAGE_ACCESS_KEY",
   "STORAGE_SECRET_KEY",
   "STORAGE_BUCKET",
-  "STORAGE_PUBLIC_URL",
-  "CLIENT_URL"
+  "STORAGE_PUBLIC_URL"
 ] as const;
 
-const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key] || process.env[key]?.trim() === "");
+const forceLocalStorage = (process.env.STORAGE_FORCE_LOCAL ?? "false") === "true";
+
+const missingEnvVars: string[] = requiredEnvVars.filter(
+  (key) => !process.env[key] || process.env[key]?.trim() === ""
+);
+
+if (!forceLocalStorage) {
+  missingEnvVars.push(
+    ...storageRequiredEnvVars.filter((key) => !process.env[key] || process.env[key]?.trim() === "")
+  );
+}
 
 if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(", ")}`);
