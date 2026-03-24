@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient, getApiErrorMessage } from "../lib/apiClient";
 import type { ApiResponse } from "../types";
+import { useAppSelector } from "./useAppStore";
 
 interface PreferencesPayload {
   pinnedItems?: string[];
@@ -12,20 +13,33 @@ const MAX_PINNED_ITEMS = 5;
 const PINNED_ITEMS_EVENT = "cloudcue:pinned-items-changed";
 
 export const usePinnedItems = () => {
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
   const [items, setItems] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const save = useCallback(async (next: string[]) => {
+    if (!accessToken) {
+      setError("Sign in to sync pinned items");
+      return;
+    }
+
     setItems(next);
     window.dispatchEvent(new CustomEvent<string[]>(PINNED_ITEMS_EVENT, { detail: next }));
     await apiClient.patch<ApiResponse<{ pinnedItems: string[] }>>("/users/preferences", {
       pinnedItems: next
     } satisfies PreferencesPayload);
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     const load = async () => {
+      if (!accessToken) {
+        setItems([]);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
@@ -39,7 +53,7 @@ export const usePinnedItems = () => {
     };
 
     void load();
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     const onPinnedItemsChanged = (event: Event) => {

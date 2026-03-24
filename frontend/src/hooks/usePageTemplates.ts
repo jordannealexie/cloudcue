@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient, getApiErrorMessage } from "../lib/apiClient";
 import type { ApiResponse } from "../types";
 import type { PageTemplateRecord } from "../types/workspace";
+import { useAppSelector } from "./useAppStore";
 
 const LOCAL_TEMPLATES_KEY = "cloudcue-page-templates";
 
@@ -26,6 +27,7 @@ const writeLocalTemplates = (items: PageTemplateRecord[]) => {
 };
 
 export const usePageTemplates = (options?: { autoLoad?: boolean }) => {
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
   const [items, setItems] = useState<PageTemplateRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,14 @@ export const usePageTemplates = (options?: { autoLoad?: boolean }) => {
   const autoLoad = options?.autoLoad ?? true;
 
   const load = useCallback(async () => {
+    if (!accessToken) {
+      setItems(readLocalTemplates());
+      setUsingLocalFallback(true);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -46,7 +56,7 @@ export const usePageTemplates = (options?: { autoLoad?: boolean }) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     if (!autoLoad) {
@@ -57,7 +67,7 @@ export const usePageTemplates = (options?: { autoLoad?: boolean }) => {
   }, [autoLoad, load]);
 
   const createTemplate = useCallback(async (payload: { name: string; content: unknown }): Promise<boolean> => {
-    if (usingLocalFallback) {
+    if (usingLocalFallback || !accessToken) {
       const now = new Date().toISOString();
       const nextItem: PageTemplateRecord = {
         id: crypto.randomUUID(),
@@ -103,10 +113,10 @@ export const usePageTemplates = (options?: { autoLoad?: boolean }) => {
       setError(fallbackError);
       return false;
     }
-  }, [items, usingLocalFallback]);
+  }, [accessToken, items, usingLocalFallback]);
 
   const deleteTemplate = useCallback(async (templateId: string): Promise<boolean> => {
-    if (usingLocalFallback) {
+    if (usingLocalFallback || !accessToken) {
       const next = items.filter((item) => item.id !== templateId);
       setItems(next);
       writeLocalTemplates(next);
@@ -126,7 +136,7 @@ export const usePageTemplates = (options?: { autoLoad?: boolean }) => {
       setError(null);
       return true;
     }
-  }, [items, usingLocalFallback]);
+  }, [accessToken, items, usingLocalFallback]);
 
   return useMemo(
     () => ({ items, isLoading, error, load, createTemplate, deleteTemplate, usingLocalFallback }),

@@ -22,7 +22,6 @@ const localUploadTokenSecret = process.env.LOCAL_UPLOAD_TOKEN_SECRET ?? process.
 
 let storageReachableCache: { value: boolean; expiresAt: number } | null = null;
 let localStorageSyncRunning = false;
-let localNonceTableReady: Promise<void> | null = null;
 
 if (!endpoint || !accessKeyId || !secretAccessKey) {
   throw new Error("Missing storage configuration");
@@ -171,22 +170,18 @@ const decodeLocalUploadToken = (token: string): LocalUploadTokenPayload => {
 };
 
 const ensureLocalNonceTable = async () => {
-  if (!localNonceTableReady) {
-    localNonceTableReady = prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS upload_nonces (
-        nonce TEXT PRIMARY KEY,
-        token_hash TEXT NOT NULL,
-        key TEXT NOT NULL,
-        mime_type TEXT NOT NULL,
-        max_bytes INTEGER NOT NULL,
-        expires_at TIMESTAMPTZ NOT NULL,
-        used_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `).then(() => undefined);
-  }
-
-  await localNonceTableReady;
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS upload_nonces (
+      nonce TEXT PRIMARY KEY,
+      token_hash TEXT NOT NULL,
+      key TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      max_bytes INTEGER NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
 };
 
 const persistLocalNonce = async (payload: LocalUploadTokenPayload, tokenHash: string) => {

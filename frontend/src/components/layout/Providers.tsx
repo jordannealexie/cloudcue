@@ -6,7 +6,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import { ThemeProvider } from "next-themes";
 import { persistor, store } from "../../store";
 import { setAccessToken, setRefreshHandler } from "../../lib/apiClient";
-import { refreshAccessTokenThunk } from "../../store/slices/authSlice";
+import { clearSession, refreshAccessTokenThunk } from "../../store/slices/authSlice";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -22,6 +22,8 @@ function SessionBridge(): null {
       if (refreshAccessTokenThunk.fulfilled.match(result)) {
         return result.payload;
       }
+
+      store.dispatch(clearSession());
       return null;
     });
 

@@ -24,16 +24,19 @@ import {
 } from "../../../store/slices/commentsSlice";
 import { useAppDispatch, useAppSelector } from "../../../hooks/useAppStore";
 
+const EMPTY_COMMENTS: never[] = [];
+const EMPTY_VIEWERS: never[] = [];
+
 export default function WorkspaceEditorPage() {
   const params = useParams<{ pageId: string }>();
   const router = useRouter();
   const pageId = params.pageId;
   const dispatch = useAppDispatch();
   const { loadTree, loadPage, pageTree, pages, updatePage, createPage, removePage, isSaving, saveError } = useWorkspace();
-  const comments = useAppSelector((state) => state.comments.byPageId[pageId] ?? []);
+  const comments = useAppSelector((state) => state.comments.byPageId[pageId] ?? EMPTY_COMMENTS);
   const commentsError = useAppSelector((state) => state.comments.error);
   const isCommentPanelOpen = useAppSelector((state) => state.comments.isCommentPanelOpen);
-  const viewers = useAppSelector((state) => state.workspace.viewers[pageId] ?? []);
+  const viewers = useAppSelector((state) => state.workspace.viewers[pageId] ?? EMPTY_VIEWERS);
   const { createTemplate } = usePageTemplates({ autoLoad: false });
   const { uploadFile, isUploading: isUploadingCover } = useUpload();
 

@@ -6,12 +6,16 @@ import type { ApiResponse, Task, TaskStatus } from "../../types";
 
 interface TasksState {
   byProjectId: Record<string, Task[]>;
+  fetchedAtByProjectId: Record<string, number>;
+  loadingByProjectId: Record<string, boolean>;
   isLoading: boolean;
   error: string | null;
 }
 
 const initialState: TasksState = {
   byProjectId: {},
+  fetchedAtByProjectId: {},
+  loadingByProjectId: {},
   isLoading: false,
   error: null
 };
@@ -25,6 +29,24 @@ export const fetchTasksByProjectThunk = createAsyncThunk(
       return { projectId, tasks: response.data.data };
     } catch (error) {
       return rejectWithValue(getApiErrorMessage(error, "Unable to fetch tasks"));
+    }
+  },
+  {
+    condition: (projectId, { getState }) => {
+      const state = getState() as { tasks: TasksState };
+
+      if (state.tasks.loadingByProjectId[projectId]) {
+        return false;
+      }
+
+      const hasCachedTasks = Array.isArray(state.tasks.byProjectId[projectId]);
+      const fetchedAt = state.tasks.fetchedAtByProjectId[projectId];
+
+      if (!hasCachedTasks || !fetchedAt) {
+        return true;
+      }
+
+      return Date.now() - fetchedAt > 30_000;
     }
   }
 );
@@ -135,39 +157,58 @@ const tasksSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchTasksByProjectThunk.pending, (state) => {
+      .addCase(fetchTasksByProjectThunk.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
+        state.loadingByProjectId ??= {};
+        state.loadingByProjectId[action.meta.arg] = true;
       })
       .addCase(fetchTasksByProjectThunk.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.byProjectId ??= {};
+        state.loadingByProjectId ??= {};
+        state.fetchedAtByProjectId ??= {};
         state.byProjectId[action.payload.projectId] = action.payload.tasks;
+        state.fetchedAtByProjectId[action.payload.projectId] = Date.now();
+        state.loadingByProjectId[action.payload.projectId] = false;
       })
       .addCase(fetchTasksByProjectThunk.rejected, (state, action) => {
         state.isLoading = false;
+        const projectId = action.meta.arg;
+        state.loadingByProjectId ??= {};
+        state.loadingByProjectId[projectId] = false;
         state.error = (action.payload as string) ?? "Unable to fetch tasks";
       })
       .addCase(createTaskThunk.fulfilled, (state, action) => {
+        state.byProjectId ??= {};
+        state.fetchedAtByProjectId ??= {};
         const tasks = state.byProjectId[action.payload.projectId] ?? [];
         state.byProjectId[action.payload.projectId] = [...tasks, action.payload.task];
+        state.fetchedAtByProjectId[action.payload.projectId] = Date.now();
       })
       .addCase(createTaskThunk.rejected, (state, action) => {
         state.error = (action.payload as string) ?? "Unable to create task";
       })
       .addCase(updateTaskThunk.fulfilled, (state, action) => {
+        state.byProjectId ??= {};
+        state.fetchedAtByProjectId ??= {};
         const tasks = state.byProjectId[action.payload.projectId] ?? [];
         state.byProjectId[action.payload.projectId] = tasks.map((task) =>
           task.id === action.payload.task.id ? action.payload.task : task
         );
+        state.fetchedAtByProjectId[action.payload.projectId] = Date.now();
       })
       .addCase(updateTaskThunk.rejected, (state, action) => {
         state.error = (action.payload as string) ?? "Unable to update task";
       })
       .addCase(deleteTaskThunk.fulfilled, (state, action) => {
+        state.byProjectId ??= {};
+        state.fetchedAtByProjectId ??= {};
         const tasks = state.byProjectId[action.payload.projectId] ?? [];
         state.byProjectId[action.payload.projectId] = tasks.filter(
           (task) => task.id !== action.payload.taskId
         );
+        state.fetchedAtByProjectId[action.payload.projectId] = Date.now();
       })
       .addCase(deleteTaskThunk.rejected, (state, action) => {
         state.error = (action.payload as string) ?? "Unable to delete task";

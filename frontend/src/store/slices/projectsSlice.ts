@@ -9,24 +9,43 @@ interface ProjectsState {
   currentProject: Project | null;
   isLoading: boolean;
   error: string | null;
+  lastFetchedAt: number | null;
 }
 
 const initialState: ProjectsState = {
   items: [],
   currentProject: null,
   isLoading: false,
-  error: null
+  error: null,
+  lastFetchedAt: null
 };
 
 /** Fetches all projects for the authenticated user. */
-export const fetchProjectsThunk = createAsyncThunk("projects/fetchAll", async (_, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.get<ApiResponse<Project[]>>("/projects");
-    return response.data.data;
-  } catch (error) {
-    return rejectWithValue(getApiErrorMessage(error, "Unable to fetch projects"));
+export const fetchProjectsThunk = createAsyncThunk(
+  "projects/fetchAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get<ApiResponse<Project[]>>("/projects");
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, "Unable to fetch projects"));
+    }
+  },
+  {
+    condition: (_, { getState }) => {
+      const state = getState() as { projects: ProjectsState };
+      if (state.projects.isLoading) {
+        return false;
+      }
+
+      if (state.projects.items.length === 0 || !state.projects.lastFetchedAt) {
+        return true;
+      }
+
+      return Date.now() - state.projects.lastFetchedAt > 30_000;
+    }
   }
-});
+);
 
 /** Fetches a single project including members and tasks. */
 export const fetchProjectByIdThunk = createAsyncThunk(
@@ -97,6 +116,7 @@ const projectsSlice = createSlice({
       .addCase(fetchProjectsThunk.fulfilled, (state, action) => {
         state.isLoading = false;
         state.items = action.payload;
+        state.lastFetchedAt = Date.now();
       })
       .addCase(fetchProjectsThunk.rejected, (state, action) => {
         state.isLoading = false;

@@ -7,6 +7,8 @@ import type { PageSearchResult, PageTreeNode, Viewer, WorkspacePage } from "../.
 interface WorkspaceState {
   pages: Record<string, WorkspacePage>;
   pageTree: PageTreeNode[];
+  pageFetchedAt: Record<string, number>;
+  treeFetchedAt: number | null;
   currentPageId: string | null;
   viewers: Record<string, Viewer[]>;
   searchResults: PageSearchResult[];
@@ -19,6 +21,8 @@ interface WorkspaceState {
 const initialState: WorkspaceState = {
   pages: {},
   pageTree: [],
+  pageFetchedAt: {},
+  treeFetchedAt: null,
   currentPageId: null,
   viewers: {},
   searchResults: [],
@@ -60,23 +64,56 @@ const buildTree = (pages: WorkspacePage[]): PageTreeNode[] => {
   return roots;
 };
 
-export const fetchPageTree = createAsyncThunk("workspace/fetchPageTree", async (_, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.get("/pages");
-    return response.data.data as WorkspacePage[];
-  } catch (error) {
-    return rejectWithValue(getApiErrorMessage(error, "Unable to load workspace pages"));
-  }
-});
+export const fetchPageTree = createAsyncThunk(
+  "workspace/fetchPageTree",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get("/pages");
+      return response.data.data as WorkspacePage[];
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, "Unable to load workspace pages"));
+    }
+  },
+  {
+    condition: (_, { getState }) => {
+      const state = getState() as { workspace: WorkspaceState };
+      if (state.workspace.isLoading) {
+        return false;
+      }
 
-export const fetchPage = createAsyncThunk("workspace/fetchPage", async (pageId: string, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.get(`/pages/${pageId}`);
-    return response.data.data as WorkspacePage;
-  } catch (error) {
-    return rejectWithValue(getApiErrorMessage(error, "Unable to load page"));
+      if (state.workspace.pageTree.length === 0 || !state.workspace.treeFetchedAt) {
+        return true;
+      }
+
+      return Date.now() - state.workspace.treeFetchedAt > 30_000;
+    }
   }
-});
+);
+
+export const fetchPage = createAsyncThunk(
+  "workspace/fetchPage",
+  async (pageId: string, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get(`/pages/${pageId}`);
+      return response.data.data as WorkspacePage;
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, "Unable to load page"));
+    }
+  },
+  {
+    condition: (pageId, { getState }) => {
+      const state = getState() as { workspace: WorkspaceState };
+      const fetchedAt = state.workspace.pageFetchedAt[pageId];
+      const hasPage = Boolean(state.workspace.pages[pageId]);
+
+      if (!hasPage || !fetchedAt) {
+        return true;
+      }
+
+      return Date.now() - fetchedAt > 30_000;
+    }
+  }
+);
 
 export const createPageThunk = createAsyncThunk(
   "workspace/createPage",
@@ -166,6 +203,12 @@ const workspaceSlice = createSlice({
           acc[page.id] = page;
           return acc;
         }, {});
+        const fetchedAt = Date.now();
+        state.pageFetchedAt = action.payload.reduce<Record<string, number>>((acc, page) => {
+          acc[page.id] = fetchedAt;
+          return acc;
+        }, {});
+        state.treeFetchedAt = fetchedAt;
         state.pageTree = buildTree(action.payload);
       })
       .addCase(fetchPageTree.rejected, (state, action) => {
@@ -174,6 +217,7 @@ const workspaceSlice = createSlice({
       })
       .addCase(fetchPage.fulfilled, (state, action) => {
         state.pages[action.payload.id] = action.payload;
+        state.pageFetchedAt[action.payload.id] = Date.now();
         state.currentPageId = action.payload.id;
       })
       .addCase(fetchPage.rejected, (state, action) => {
@@ -181,6 +225,8 @@ const workspaceSlice = createSlice({
       })
       .addCase(createPageThunk.fulfilled, (state, action) => {
         state.pages[action.payload.id] = action.payload;
+        state.pageFetchedAt[action.payload.id] = Date.now();
+        state.treeFetchedAt = Date.now();
         state.pageTree = buildTree(Object.values(state.pages));
       })
       .addCase(createPageThunk.rejected, (state, action) => {
@@ -193,6 +239,8 @@ const workspaceSlice = createSlice({
       .addCase(updatePageThunk.fulfilled, (state, action) => {
         state.isSaving = false;
         state.pages[action.payload.id] = action.payload;
+        state.pageFetchedAt[action.payload.id] = Date.now();
+        state.treeFetchedAt = Date.now();
         state.pageTree = buildTree(Object.values(state.pages));
       })
       .addCase(updatePageThunk.rejected, (state, action) => {
@@ -201,6 +249,8 @@ const workspaceSlice = createSlice({
       })
       .addCase(deletePageThunk.fulfilled, (state, action) => {
         delete state.pages[action.payload];
+        delete state.pageFetchedAt[action.payload];
+        state.treeFetchedAt = Date.now();
         state.pageTree = buildTree(Object.values(state.pages));
       })
       .addCase(deletePageThunk.rejected, (state, action) => {
@@ -208,6 +258,8 @@ const workspaceSlice = createSlice({
       })
       .addCase(movePageThunk.fulfilled, (state, action) => {
         state.pages[action.payload.id] = action.payload;
+        state.pageFetchedAt[action.payload.id] = Date.now();
+        state.treeFetchedAt = Date.now();
         state.pageTree = buildTree(Object.values(state.pages));
       })
       .addCase(movePageThunk.rejected, (state, action) => {

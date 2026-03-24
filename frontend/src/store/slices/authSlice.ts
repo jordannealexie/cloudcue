@@ -84,6 +84,12 @@ const authSlice = createSlice({
     clearAuthError(state) {
       state.error = null;
     },
+    clearSession(state) {
+      state.user = null;
+      state.accessToken = null;
+      state.error = null;
+      setAccessToken(null);
+    },
     setSession(state, action: PayloadAction<{ user: User; accessToken: string }>) {
       state.user = action.payload.user;
       state.accessToken = action.payload.accessToken;
@@ -136,5 +142,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { clearAuthError, setSession } = authSlice.actions;
+export const { clearAuthError, clearSession, setSession } = authSlice.actions;
 export default authSlice.reducer;
