@@ -172,60 +172,36 @@ If you are in a non-migration local workflow:
 	- Dashboard load
 	- Projects/Workspace open
 
-## Production Deployment (Vercel + Backend Host)
+## Production Deployment (Split Recommended)
 
-Use a split deployment model:
+Recommended deployment model:
 
-- Frontend on Vercel (Next.js app in frontend)
+- Frontend on Vercel (root directory: frontend)
 - Backend on a long-running Node host (Railway/Render/Fly/VM)
 
-Do not deploy the backend to Vercel serverless for this project because it relies on long-lived Socket.io and background work.
+This keeps realtime Socket.io and background worker behavior fully available.
 
-### 1. Deploy Frontend To Vercel
-
-In Vercel project settings:
-
-1. Application Preset: Next.js
-2. Root Directory: frontend
-3. Build Command: leave default
-4. Output Directory: leave default
-5. Install Command: leave default
-
-Set frontend env:
+Frontend Vercel env:
 
 - NEXT_PUBLIC_API_URL=https://your-backend-domain/api
 
-You can copy from frontend/env.production.example.
+Backend env templates:
 
-### 2. Deploy Backend To Railway/Render/Fly
+- backend/env.production.example
+- frontend/env.production.example
 
-Backend service settings:
+## Backend On Vercel (Compatibility Mode)
 
-1. Root Directory: backend
-2. Build Command: npm install && npm run build
-3. Start Command: npm run start
+Backend includes a Vercel serverless entrypoint:
 
-Set backend env from backend/env.production.example.
+- backend/api/[...path].ts
 
-After first deploy run migrations:
+In compatibility mode, core API/auth/CRUD endpoints can work, but there are limitations:
 
-1. npm run prisma:migrate
+- Socket.io realtime server is not started.
+- Local fallback sync background job is not started.
 
-Optional seed:
-
-1. npm run prisma:seed
-
-### 3. Required URL Wiring
-
-- Frontend NEXT_PUBLIC_API_URL must target backend /api
-- Backend CLIENT_URL must be your frontend origin
-- Backend GOOGLE_REDIRECT_URI must be backend /api/auth/google/callback
-- Backend STORAGE_PUBLIC_URL must be publicly reachable
-
-### 4. Security Notes
-
-- Use strong unique secrets for JWT_SECRET, JWT_REFRESH_SECRET, and LOCAL_UPLOAD_TOKEN_SECRET.
-- If any OAuth client secret was ever committed or shared, rotate it immediately.
+Use a long-running backend host if you need full realtime/presence behavior.
 
 ## Services
 
