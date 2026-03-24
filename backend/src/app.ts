@@ -23,14 +23,18 @@ import { checkStorageHealth } from "./services/uploadService";
 export const app = express();
 
 const localStorageDir = path.resolve(process.cwd(), "storage", "uploads");
+const corsOrigin = process.env.CLIENT_URL ?? true;
 
 app.use(helmet());
 app.use(
   cors({
-    origin: true,
-    credentials: true
+    origin: corsOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
+app.options("*", cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/local-files", express.static(localStorageDir));
