@@ -48,6 +48,9 @@ docker compose exec backend npx prisma db seed
 - STORAGE_BUCKET: Bucket name
 - STORAGE_PUBLIC_URL: Public base URL for uploaded files
 - CLIENT_URL: Frontend origin used for socket CORS
+- GOOGLE_CLIENT_ID: Google OAuth web client id
+- GOOGLE_CLIENT_SECRET: Google OAuth client secret
+- GOOGLE_REDIRECT_URI: Google OAuth callback URL (for example http://localhost:4000/api/auth/google/callback)
 - SMTP_HOST: SMTP host for transactional email (password reset)
 - SMTP_PORT: SMTP port (for example 587)
 - SMTP_USER: SMTP username
@@ -74,6 +77,9 @@ docker compose exec backend npx prisma db seed
 - LOCAL_UPLOAD_TOKEN_SECRET: HMAC secret used to sign local upload tokens (falls back to JWT_SECRET)
 - STORAGE_SYNC_INTERVAL_MS: Interval for background local-to-storage sync worker (default 60000)
 - CLIENT_URL: Allowed frontend origin for Socket.io
+- GOOGLE_CLIENT_ID: Google OAuth web client id
+- GOOGLE_CLIENT_SECRET: Google OAuth client secret
+- GOOGLE_REDIRECT_URI: Google OAuth callback URL
 - SMTP_HOST: SMTP host for transactional email
 - SMTP_PORT: SMTP port
 - SMTP_USER: SMTP username
