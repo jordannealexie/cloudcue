@@ -35,6 +35,17 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/api/local-files", express.static(localStorageDir));
 
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    data: { service: "cloudcue-backend", status: "ok" }
+  });
+});
+
+app.get("/favicon.ico", (_req: Request, res: Response) => {
+  res.status(204).end();
+});
+
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
