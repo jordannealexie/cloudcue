@@ -92,21 +92,74 @@ If any required variable is missing, backend startup now fails early with an exp
 
 ## 6. Production Deploy Sequence
 
-1. Build artifacts
-   - cd backend
-   - npm install
-   - npm run build
-   - cd ../frontend
-   - npm install
-   - npm run build
+1. Deploy backend to a long-running Node host (Railway/Render/Fly/VM)
+   - Root directory: backend
+   - Build command: npm install && npm run build
+   - Start command: npm run start
+   - Environment variables: use backend/env.production.example
 2. Apply database migration on target environment
-   - cd ../backend
    - npm run prisma:migrate
-3. Start backend and verify health endpoint
+3. Deploy frontend to Vercel
+   - Project preset: Next.js
+   - Root directory: frontend
+   - Environment variables: use frontend/env.production.example
+4. URL wiring checks
+   - backend CLIENT_URL == frontend deployed origin
+   - frontend NEXT_PUBLIC_API_URL == backend /api URL
+   - GOOGLE_REDIRECT_URI uses backend /api/auth/google/callback if OAuth is enabled
+5. Verify backend health endpoint
    - GET /api/health should return success true and status ok
-4. Start frontend and validate key routes
+6. Validate key frontend routes
    - /login
    - /register
    - /dashboard
    - /projects
    - /workspace
+
+## 7. Deployment Command Sheet
+
+Use these commands during production rollout.
+
+### Local pre-check
+
+1. cd backend
+2. npm install
+3. npm run env:check
+4. npm run build
+
+### Render shell migration
+
+1. npm run prisma:migrate
+
+Optional seed:
+
+1. npm run prisma:seed
+
+### Health checks
+
+1. curl -sS https://api.cloudcue.app/api/health
+2. curl -sS https://api.cloudcue.app/api/health/dependencies
+
+### Frontend build sanity
+
+1. cd frontend
+2. npm install
+3. npm run build
+
+### Smoke scripts against deployed backend
+
+1. cd backend
+2. set SMOKE_API_BASE_URL=https://api.cloudcue.app/api && node tests/upload-security.smoke.js
+3. set SMOKE_API_BASE_URL=https://api.cloudcue.app/api && node tests/backend-regression.smoke.js
+
+### Required URL env wiring
+
+Frontend:
+
+1. NEXT_PUBLIC_API_URL=https://api.cloudcue.app/api
+
+Backend:
+
+1. CLIENT_URL=https://cloudcue.vercel.app
+2. BACKEND_PUBLIC_URL=https://api.cloudcue.app
+3. GOOGLE_REDIRECT_URI=https://api.cloudcue.app/api/auth/google/callback

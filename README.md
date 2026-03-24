@@ -172,6 +172,61 @@ If you are in a non-migration local workflow:
 	- Dashboard load
 	- Projects/Workspace open
 
+## Production Deployment (Vercel + Backend Host)
+
+Use a split deployment model:
+
+- Frontend on Vercel (Next.js app in frontend)
+- Backend on a long-running Node host (Railway/Render/Fly/VM)
+
+Do not deploy the backend to Vercel serverless for this project because it relies on long-lived Socket.io and background work.
+
+### 1. Deploy Frontend To Vercel
+
+In Vercel project settings:
+
+1. Application Preset: Next.js
+2. Root Directory: frontend
+3. Build Command: leave default
+4. Output Directory: leave default
+5. Install Command: leave default
+
+Set frontend env:
+
+- NEXT_PUBLIC_API_URL=https://your-backend-domain/api
+
+You can copy from frontend/env.production.example.
+
+### 2. Deploy Backend To Railway/Render/Fly
+
+Backend service settings:
+
+1. Root Directory: backend
+2. Build Command: npm install && npm run build
+3. Start Command: npm run start
+
+Set backend env from backend/env.production.example.
+
+After first deploy run migrations:
+
+1. npm run prisma:migrate
+
+Optional seed:
+
+1. npm run prisma:seed
+
+### 3. Required URL Wiring
+
+- Frontend NEXT_PUBLIC_API_URL must target backend /api
+- Backend CLIENT_URL must be your frontend origin
+- Backend GOOGLE_REDIRECT_URI must be backend /api/auth/google/callback
+- Backend STORAGE_PUBLIC_URL must be publicly reachable
+
+### 4. Security Notes
+
+- Use strong unique secrets for JWT_SECRET, JWT_REFRESH_SECRET, and LOCAL_UPLOAD_TOKEN_SECRET.
+- If any OAuth client secret was ever committed or shared, rotate it immediately.
+
 ## Services
 
 - Frontend: http://localhost:3000
