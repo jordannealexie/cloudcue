@@ -69,8 +69,8 @@ export default function RegisterPage() {
           <p className="mb-6 text-[14px] text-[var(--text-secondary)]">Free forever. No credit card needed.</p>
 
           <form className="space-y-4" onSubmit={handleSubmit(submit)}>
-            <Input label="Full name" placeholder="Jane Smith" error={errors.name?.message} {...register("name")} />
-            <Input label="Work email" type="email" placeholder="jane@company.com" error={errors.email?.message} {...register("email")} />
+            <Input label="Full name" placeholder="Full Name" error={errors.name?.message} {...register("name")} />
+            <Input label="Email" type="email" placeholder="email@example.com" error={errors.email?.message} {...register("email")} />
             <Input label="Password" type="password" placeholder="Create a strong password" error={errors.password?.message} {...register("password")} />
             <Input label="Confirm Password" type="password" placeholder="********" error={errors.confirmPassword?.message} {...register("confirmPassword")} />
             {error ? <p className="text-[12px] text-[var(--blush)]">{error}</p> : null}

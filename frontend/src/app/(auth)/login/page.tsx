@@ -62,7 +62,7 @@ export default function LoginPage() {
           <p className="mb-6 text-[14px] text-[var(--text-secondary)]">Sign in to continue where you left off.</p>
 
           <form className="space-y-4" onSubmit={handleSubmit(submit)}>
-            <Input label="Email" type="email" placeholder="you@cloudcue.app" error={errors.email?.message} {...register("email")} />
+            <Input label="Email" type="email" placeholder="email@example.com" error={errors.email?.message} {...register("email")} />
             <Input label="Password" type="password" placeholder="********" error={errors.password?.message} {...register("password")} />
             <p className="text-right text-[12px] text-[var(--text-secondary)]">
               <Link href="/forgot-password" className="font-semibold text-[var(--accent)] hover:opacity-85">Forgot your password?</Link>

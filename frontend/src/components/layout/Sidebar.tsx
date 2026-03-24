@@ -269,7 +269,7 @@ export default function Sidebar() {
           <Avatar name={user?.name ?? "CloudCue User"} src={user?.avatarUrl} size="sm" />
           <div>
             <p className="text-[12px] font-semibold">{user?.name ?? "CloudCue User"}</p>
-            <p className="text-[11px] text-[var(--text-secondary)]">{user?.email ?? "you@cloudcue.app"}</p>
+            <p className="text-[11px] text-[var(--text-secondary)]">{user?.email ?? "email@example.com"}</p>
           </div>
         </div>
       </div>

@@ -277,7 +277,7 @@ export default function TeamPage() {
         <div className="space-y-4">
           <Input
             label="Email addresses"
-            placeholder="jane@company.com, james@company.com"
+            placeholder="email@example.com, email@example.com"
             value={inviteValue}
             onChange={(event) => setInviteValue(event.target.value)}
           />
